@@ -208,16 +208,22 @@ input, select, textarea { font: inherit; color: inherit; }
 /* 위 링크 줄 */
 #topbar {
   position: fixed; left: 0; right: 0; top: 0; z-index: 60;
-  display: flex; align-items: center; gap: 8px 28px; flex-wrap: wrap; padding: 14px 380px 14px 56px;
+  display: flex; align-items: center; gap: 8px 28px; flex-wrap: wrap; padding: 14px 380px 14px 88px;
   background: var(--bar); border-bottom: 1px solid var(--line); backdrop-filter: blur(12px);
   transform: translateY(-102%); transition: transform .35s cubic-bezier(.4,0,.2,1);
 }
 #topbar.open { transform: none; }
-.tb-brand { font-family: var(--bodoni); font-size: 15px; letter-spacing: .32em; margin-right: auto; }
+.tb-brand { font-family: var(--bodoni); font-size: 15px; letter-spacing: .32em; margin-right: auto; display: inline-flex; align-items: center; gap: 10px; }
+.tb-brand img { display: none; width: 30px; height: 30px; }
 .tb-links { display: flex; flex-wrap: wrap; gap: 4px 26px; }
 .tb-links a { font-family: var(--bodoni); font-size: 14px; letter-spacing: .22em; min-height: 40px; display: inline-flex; align-items: center; border-bottom: 1px solid transparent; text-transform: uppercase; }
 .tb-links a:hover, .tb-links a.on { border-bottom-color: currentColor; }
 .menu-btn { display: none; }
+
+/* 왼쪽 위 로고 (누르면 홈) */
+.home-logo { position: fixed; left: 20px; top: 14px; z-index: 66; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; transition: transform .3s cubic-bezier(.2,.8,.3,1.4); }
+.home-logo img { width: 40px; height: 40px; filter: drop-shadow(0 2px 10px rgba(120,110,230,.45)); }
+.home-logo:hover { transform: rotate(-14deg) scale(1.08); }
 
 /* 오른쪽 위: 테마 · INTRO · ☰ */
 .corner { position: fixed; right: 24px; top: 16px; z-index: 65; display: flex; align-items: center; gap: 10px; }
@@ -598,7 +604,8 @@ body.has-player #stage { display: block; }
   .modes { grid-template-columns: 1fr; }
 }
 @media (max-width: 820px), (hover: none) {
-  .edge, .index-tab, .corner { display: none; }
+  .edge, .index-tab, .corner, .home-logo { display: none; }
+  .tb-brand img { display: block; }
   #topbar { transform: none; padding: 8px 12px; position: sticky; }
   .tb-links { display: none; }
   .menu-btn { display: inline-grid; }
