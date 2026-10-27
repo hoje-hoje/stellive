@@ -20,8 +20,9 @@
 <!-- 첫 화면 (하루 한 번) -->
 <section id="intro" hidden aria-label="첫 화면">
   <div class="in-wall">
-    <div class="in-brand"><img src="assets/logo.svg" alt=""><span>STELLIVE</span></div>
-    <svg class="in-crest" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6"><circle cx="50" cy="50" r="48"/><circle cx="50" cy="50" r="41" stroke-width=".4"/><path d="M79 21A41 41 0 1 1 21 79Z"/><path d="M30 42Q31.6 58.4 49 61 31.6 63.6 30 80 28.4 63.6 10.5 61 28.4 58.4 30 42Z"/><path d="M40.8 64Q41.6 71.9 49.5 72.8 41.6 73.7 40.8 81.6 40 73.7 32.1 72.8 40 71.9 40.8 64Z"/></g></svg>
+    <div class="in-brand"><img src="assets/logo.svg" data-img="logo" alt=""><span data-t="brand.name"></span></div>
+    <img class="in-crest" id="introCrestImg" alt="" aria-hidden="true" hidden>
+    <svg class="in-crest" id="introCrestSvg" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6"><circle cx="50" cy="50" r="48"/><circle cx="50" cy="50" r="41" stroke-width=".4"/><path d="M79 21A41 41 0 1 1 21 79Z"/><path d="M30 42Q31.6 58.4 49 61 31.6 63.6 30 80 28.4 63.6 10.5 61 28.4 58.4 30 42Z"/><path d="M40.8 64Q41.6 71.9 49.5 72.8 41.6 73.7 40.8 81.6 40 73.7 32.1 72.8 40 71.9 40.8 64Z"/></g></svg>
     <div class="in-foot">
       <em data-t="intro.wallEn"></em>
       <small data-t="intro.wallKo"></small>
@@ -52,7 +53,7 @@
   <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="목차 열기">
     <svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
-  <a class="tb-brand" href="#/">STELLIVE</a>
+  <a class="tb-brand" href="#/" data-t="brand.name"></a>
   <nav class="tb-links" id="tbLinks"></nav>
   <button type="button" class="btn sm solid tb-up" data-upload="{}" data-t="nav.upload"></button>
 </header>
@@ -127,22 +128,22 @@
     <h2 id="upH"><span class="sc">Upload</span><span data-t="upload.title"></span></h2>
     <p class="hint" id="upHint"></p>
 
-    <div class="field"><span>종류</span><div class="chips" id="upKind"></div></div>
-    <div class="field"><span>멤버 <em>두 명 이상 고르면 합방으로 들어간다</em></span><div class="chips" id="upMembers"></div></div>
-    <label class="field"><span>단체곡이면 <em>기수 전체가 부른 곡 등</em></span><select id="upGroup"></select></label>
-    <label class="field"><span>제목</span><input id="upTitle" placeholder="비워두면 파일 이름으로"></label>
+    <div class="field"><span data-t="upload.kind"></span><div class="chips" id="upKind"></div></div>
+    <div class="field"><span><span data-t="upload.members"></span> <em data-t="upload.membersNote"></em></span><div class="chips" id="upMembers"></div></div>
+    <label class="field"><span><span data-t="upload.group"></span> <em data-t="upload.groupNote"></em></span><select id="upGroup"></select></label>
+    <label class="field"><span data-t="upload.titleField"></span><input id="upTitle" data-tp="upload.titlePh"></label>
 
     <fieldset class="sources">
-      <legend>어디서 보나 <em>하나 이상 · 노래는 둘 다 넣으면 유튜브가 막힌 곳에서도 들린다</em></legend>
-      <label class="field"><span>링크 <em>유튜브 · 치지직 클립 · X</em></span><input id="upUrl" type="url" placeholder="https://"></label>
-      <label class="field drop"><input id="upFile" type="file" accept="video/*,audio/*,image/*"><span class="drop-txt">드라이브에 올릴 파일 — 끌어다 놓거나 눌러서 고르기</span></label>
-      <label class="field"><span>또는 이미 드라이브에 있는 파일 링크 <em>큰 영상은 드라이브에 직접 올리고 링크만</em></span><input id="upAlt" type="url" placeholder="https://drive.google.com/file/d/…"></label>
+      <legend><span data-t="upload.where"></span> <em data-t="upload.whereNote"></em></legend>
+      <label class="field"><span><span data-t="upload.link"></span> <em data-t="upload.linkNote"></em></span><input id="upUrl" type="url" placeholder="https://"></label>
+      <label class="field drop"><input id="upFile" type="file" accept="video/*,audio/*,image/*"><span class="drop-txt" data-t="upload.drop"></span></label>
+      <label class="field"><span><span data-t="upload.alt"></span> <em data-t="upload.altNote"></em></span><input id="upAlt" type="url" placeholder="https://drive.google.com/file/d/…"></label>
     </fieldset>
 
     <p class="hint small"><a href="#/about" data-t="upload.rules"></a></p>
     <div class="modal-actions">
       <span class="grow" id="upStatus"></span>
-      <button type="submit" class="btn solid" id="upSubmit">올리기</button>
+      <button type="submit" class="btn solid" id="upSubmit" data-t="upload.submit"></button>
     </div>
   </form>
 </div>

@@ -239,7 +239,7 @@ const Auth = {
 
   renderButton(el) {
     if (!window.google?.accounts?.id) {
-      el.innerHTML = `<button class="btn sm" disabled title="config.js 에 googleClientId 를 넣어야 한다">구글 로그인</button>`;
+      el.innerHTML = `<button class="btn sm" disabled title="config.js 에 googleClientId 를 넣어야 한다">${esc(typeof t === 'function' ? t('login.button') : '구글 로그인')}</button>`;
       return;
     }
     el.innerHTML = '';

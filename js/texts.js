@@ -12,6 +12,10 @@ const TEXT_SECTIONS = [
     ['intro.skip', '다시 보지 않기', '오늘 하루 다시 보지 않기'],
     ['intro.wallEn', '왼쪽 벽 영문', 'Since the first star\n— a fan archive', true],
     ['intro.wallKo', '왼쪽 벽 안내', '팬이 만든 비공식 아카이브 ·\n스텔라이브 공식 활동이 아니다', true],
+    ['meta.title', '브라우저 탭 제목', 'STELLIVE ARCHIVE'],
+    ['meta.description', '검색·공유 설명', '팬이 만든 비공식 스텔라이브 아카이브 — 멤버별 커버곡 · 오리곡 · 클립 · 팬아트'],
+    ['brand.name', '사이트 이름 (목차·맨 아래·위 줄)', 'STELLIVE'],
+    ['brand.sub', '사이트 이름 뒤 기울인 글씨 (맨 아래)', 'Archive'],
   ] },
   { id: 'nav', name: '목차 · 위 링크 줄', items: [
     ['nav.title', '목차 제목', 'INDEX'],
@@ -44,6 +48,17 @@ const TEXT_SECTIONS = [
     ['cal.big', '캘린더 페이지 큰 제목', 'Calendar'],
     ['cal.ko', '캘린더 페이지 한글 제목', '캘린더'],
     ['cal.desc', '캘린더 페이지 설명', '생일 · 데뷔 기념일 · 이벤트'],
+    ['cal.months', '달 이름 (쉼표로 12개)', 'January, February, March, April, May, June, July, August, September, October, November, December'],
+    ['cal.days', '요일 (쉼표로 7개, 일요일부터)', 'SUN, MON, TUE, WED, THU, FRI, SAT'],
+    ['cal.monthDay', '고른 날 제목', '{m}월 {d}일'],
+    ['event.birthday', '일정 종류: 생일', '생일'],
+    ['event.debut', '일정 종류: 데뷔', '데뷔'],
+    ['event.event', '일정 종류: 이벤트', '이벤트'],
+    ['event.broadcast', '일정 종류: 방송', '방송'],
+    ['event.release', '일정 종류: 발매', '발매'],
+    ['event.etc', '일정 종류: 기타', '기타'],
+    ['event.birthdayTitle', '생일 일정 이름', '{name} 생일'],
+    ['event.debutTitle', '데뷔 기념일 이름', '{name} 데뷔 {n}주년'],
   ] },
   { id: 'profile', name: '멤버 프로필', items: [
     ['profile.back', '왼쪽 위 돌아가기', 'INDEX'],
@@ -55,6 +70,13 @@ const TEXT_SECTIONS = [
     ['profile.summary', '소개 제목', 'Summary'],
     ['profile.playAll', '노래 전부 듣기', '노래 전부 듣기'],
     ['profile.addFanart', '팬아트 빈칸', '＋ 팬아트'],
+    ['profile.unitLine', '이름 아래 줄', 'Stellive · {unit}'],
+    ['profile.gradUnit', '졸업 멤버 이름 아래 줄의 유닛', 'Graduation'],
+    ['profile.navGrad', '졸업 멤버 위쪽 가운데', 'GRADUATION'],
+    ['profile.month', '생일 표시', '{m}월 {d}일'],
+    ['link.chzzk', '치지직 버튼', '치지직'],
+    ['link.x', 'X 버튼', 'X'],
+    ['link.youtube', '유튜브 버튼', 'YouTube'],
   ] },
   { id: 'list', name: '목록 · 빈 화면', items: [
     ['list.count', '노래 개수', '{n}곡'],
@@ -65,6 +87,16 @@ const TEXT_SECTIONS = [
     ['list.first', '처음 올리기 버튼', '＋ 처음으로 올리기'],
     ['list.open', '원본 열기', '원본'],
     ['notFound', '없는 주소', '여긴 아무것도 없는 우주다'],
+    ['list.groupTag', '단체곡 표시', '{label} 단체'],
+    ['list.allTag', '전체 단체곡 표시', '전체'],
+    ['list.clipTitle', '제목 없는 클립', '클립'],
+    ['list.linkView', '그림 없는 링크', '링크로 보기'],
+    ['list.srcYt', '유튜브 표시', 'YouTube'],
+    ['list.srcDrive', '드라이브 표시', 'Drive'],
+    ['list.delete', '지우기 버튼 설명', '지우기'],
+    ['list.star', '별표 버튼 설명', '별표'],
+    ['viewer.cant', '보기 창에서 못 보여 줄 때', '여기서는 바로 못 보여 준다'],
+    ['viewer.by', '보기 창 올린 사람', '올린 사람 {name}'],
   ] },
   { id: 'group', name: '단체 · 합방', items: [
     ['group.big', '큰 제목', 'Units'],
@@ -86,6 +118,12 @@ const TEXT_SECTIONS = [
     ['listen.members', '멤버별 제목', '멤버별'],
     ['listen.units', '기수별 제목', '기수별'],
     ['listen.search', '찾기 칸', '제목이나 멤버로 찾기'],
+    ['listen.membersK', '멤버별 작은 제목', 'MEMBERS'],
+    ['listen.unitsK', '기수별 작은 제목', 'UNITS'],
+    ['listen.account', '별표 저장 위치: 계정', '구글 계정'],
+    ['listen.device', '별표 저장 위치: 기기', '이 기기'],
+    ['listen.memberQueue', '멤버 노래 재생 목록 이름', '{name} 노래'],
+    ['listen.unitQueue', '기수 노래 재생 목록 이름', '{label} 노래'],
   ] },
   { id: 'stars', name: '별표', items: [
     ['stars.big', '큰 제목', 'Stars'],
@@ -93,6 +131,18 @@ const TEXT_SECTIONS = [
     ['stars.login', '로그인했을 때', '{name} 계정에 저장된다'],
     ['stars.local', '로그인 안 했을 때', '이 기기에만 저장된다. 로그인하면 계정에 합쳐진다'],
     ['stars.empty', '별표가 없을 때', '☆ 를 눌러서 모아 보자'],
+    ['stars.music', '노래 묶음 제목', '노래'],
+    ['stars.clips', '클립 묶음 제목', '클립'],
+    ['stars.arts', '팬아트 묶음 제목', '팬아트 · 짤'],
+    ['stars.none', '별표한 노래가 없을 때 알림', '별표한 노래가 없다'],
+  ] },
+  { id: 'kind', name: '종류 이름', items: [
+    ['kind.cover', '커버곡', '커버곡'], ['kind.coverEn', '커버곡 (영문)', 'Covers'],
+    ['kind.original', '오리곡', '오리곡'], ['kind.originalEn', '오리곡 (영문)', 'Originals'],
+    ['kind.album', '앨범', '앨범'], ['kind.albumEn', '앨범 (영문)', 'Albums'],
+    ['kind.clip', '클립', '클립'], ['kind.clipEn', '클립 (영문)', 'Clips'],
+    ['kind.fanart', '팬아트', '팬아트'], ['kind.fanartEn', '팬아트 (영문)', 'Fan art'],
+    ['kind.meme', '짤', '짤'], ['kind.memeEn', '짤 (영문)', 'Memes'],
   ] },
   { id: 'about', name: 'About', items: [
     ['about.big', '큰 제목', 'About'],
@@ -115,6 +165,9 @@ const TEXT_SECTIONS = [
     ['footer.admin', '관리자 링크', '관리자'],
     ['footer.loginOn', '로그인했을 때', '{name} · 별표는 계정에 저장된다'],
     ['footer.loginOff', '로그인 안 했을 때', '로그인하지 않으면 별표는 이 기기에만 저장된다'],
+    ['footer.top', '맨 위로 버튼', 'TOP'],
+    ['login.button', '구글 로그인 버튼', '구글 로그인'],
+    ['login.logout', '로그아웃 버튼', '로그아웃'],
   ] },
   { id: 'upload', name: '올리기 창', items: [
     ['upload.title', '제목', '올리기'],
@@ -125,11 +178,47 @@ const TEXT_SECTIONS = [
     ['upload.done', '올린 뒤', '올렸다 ✦'],
     ['upload.deleted', '지운 뒤', '지웠다'],
     ['upload.confirmDelete', '지우기 확인', '지울까?'],
+    ['upload.kind', '칸: 종류', '종류'],
+    ['upload.members', '칸: 멤버', '멤버'],
+    ['upload.membersNote', '멤버 칸 설명', '두 명 이상 고르면 합방으로 들어간다'],
+    ['upload.group', '칸: 단체곡', '단체곡이면'],
+    ['upload.groupNote', '단체곡 칸 설명', '기수 전체가 부른 곡 등'],
+    ['upload.groupNo', '단체곡 아님', '아님'],
+    ['upload.groupAll', '전체 단체곡', '전체 단체곡'],
+    ['upload.titleField', '칸: 제목', '제목'],
+    ['upload.titlePh', '제목 칸 안내', '비워 두면 파일 이름으로'],
+    ['upload.where', '어디서 보나 묶음', '어디서 보나'],
+    ['upload.whereNote', '어디서 보나 설명', '하나 이상 · 노래는 둘 다 넣으면 유튜브가 막힌 곳에서도 들린다'],
+    ['upload.link', '칸: 링크', '링크'],
+    ['upload.linkNote', '링크 칸 설명', '유튜브 · 치지직 클립 · X'],
+    ['upload.drop', '파일 칸', '드라이브에 올릴 파일 — 끌어다 놓거나 눌러서 고르기'],
+    ['upload.alt', '칸: 드라이브 링크', '또는 이미 드라이브에 있는 파일 링크'],
+    ['upload.altNote', '드라이브 링크 칸 설명', '큰 영상은 드라이브에 직접 올리고 링크만'],
+    ['upload.submit', '올리기 버튼', '올리기'],
+    ['upload.errMember', '멤버를 안 골랐을 때', '멤버를 고르자'],
+    ['upload.errNone', '아무것도 안 넣었을 때', '링크나 파일을 하나 이상 넣자'],
+    ['upload.errSize', '파일이 클 때', '{mb}MB 까지만 된다. 큰 영상은 드라이브에 직접 올리고 링크를 붙이자'],
+    ['upload.errDemo', '미리보기 모드에서 파일', '파일 올리기는 서버를 연결한 뒤에 된다'],
+    ['upload.errLink', '링크가 이상할 때', '링크가 이상하다'],
+    ['upload.reading', '파일 읽는 중', '파일 읽는 중…'],
+    ['upload.uploading', '드라이브에 올리는 중', '드라이브에 올리는 중… (큰 파일은 1분쯤 걸린다)'],
+    ['upload.sending', '링크 올리는 중', '올리는 중…'],
   ] },
   { id: 'player', name: '플레이어', items: [
     ['player.preferDrive', '드라이브 먼저', '드라이브 먼저'],
     ['player.preferYt', '유튜브 먼저', '유튜브 먼저'],
     ['player.queue', '재생 목록', '재생 목록'],
+    ['player.noSongs', '틀 노래가 없을 때', '틀 수 있는 노래가 없다'],
+    ['player.ytBlocked', '유튜브가 안 열릴 때', '유튜브가 열리지 않는다.'],
+    ['player.ytError', '유튜브 재생이 막혔을 때', '유튜브에서 재생이 막혀 있다.'],
+    ['player.driveError', '드라이브 파일이 안 열릴 때', '드라이브 파일이 열리지 않는다.'],
+    ['player.switch', '다른 쪽으로 바꿀 때', '{why} → {to}로 튼다'],
+    ['player.skip', '다음 곡으로 넘길 때', '{why} 다음 곡으로 넘어간다'],
+    ['player.toDrive', '드라이브 이름', '드라이브 파일'],
+    ['player.toYt', '유튜브 이름', '유튜브'],
+    ['player.frame', '미리보기 창으로 열 때', '직접 재생이 안 돼서 드라이브 미리보기로 열었다'],
+    ['player.frameNote', '자동으로 안 넘어갈 때', '드라이브 미리보기 창이라 끝나도 자동으로 안 넘어간다'],
+    ['player.preferTitle', '드라이브/유튜브 버튼 설명', '누르면 바뀐다. 유튜브가 막힌 곳(학교 등)에서는 드라이브 먼저로 두자'],
   ] },
 ];
 
@@ -145,4 +234,27 @@ function t(key, vars) {
 // 줄바꿈과 **굵게** 를 살린 HTML
 function th(key, vars) {
   return esc(t(key, vars)).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+}
+
+// 종류 이름(커버곡…)도 관리자 글자로 바꿀 수 있다
+function applyKindNames() {
+  KINDS.forEach(k => { k.name = t('kind.' + k.id); k.en = t('kind.' + k.id + 'En'); });
+}
+
+/* 사이트 이미지 — 관리자 "사이트" 탭에서 바꾼다. 비워 두면 기본 그림 */
+const IMAGE_SLOTS = [
+  ['logo', '로고 (첫 화면 · 목차 · 맨 아래 · 탭 아이콘)', 'assets/logo.svg'],
+  ['intro', '첫 화면 오른쪽 그림 (비우면 배너 그림)', ''],
+  ['crest', '첫 화면 왼쪽 벽 문양 (비우면 로고 선 그림)', ''],
+  ['cafe', '팬 카페 버튼 그림 (비우면 로고)', ''],
+  ['drawer', '목차 배경 그림', ''],
+  ['footer', '맨 아래 배경 그림', ''],
+  ['profileBg', '멤버 프로필 그림 뒤 배경 (멤버별 배경이 없을 때)', ''],
+];
+function siteImg(key, w = 1600) {
+  const v = Data.site?.images?.[key];
+  if (v) return imgUrl(v, w);
+  if (key === 'cafe') return siteImg('logo', w);
+  if (key === 'intro') return imgUrl(Data.site?.banner?.image, w);
+  return IMAGE_SLOTS.find(s => s[0] === key)?.[2] || '';
 }

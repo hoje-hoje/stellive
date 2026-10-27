@@ -11,10 +11,7 @@ const view = $('#view');
 const state = { calMonth: null, calPick: null, listenKinds: new Set(['cover', 'original', 'album']), search: '', guideOpen: 1 };
 
 // 프로필 탭 순서는 홈/단체와 다르다 (팬아트·짤을 앞으로)
-const PROFILE_TABS = [
-  ['cover', 'Covers'], ['fanart', 'Fan art'], ['meme', 'Memes'], ['clip', 'Clips'], ['original', 'Originals'], ['album', 'Albums'],
-];
-const GROUP_EN = { cover: 'Covers', original: 'Originals', album: 'Albums', clip: 'Clips' };
+const PROFILE_TABS = ['cover', 'fanart', 'meme', 'clip', 'original', 'album'];
 
 /* ─── 공통 조각 ─── */
 const pad2 = n => String(n).padStart(2, '0');
@@ -27,12 +24,12 @@ const genNo = g => pad2(Data.site.groups.indexOf(g));
 function linkBtns(m) {
   const L = m.links || {};
   const one = (k, title) => `<a class="lk ${L[k] ? '' : 'off'}" href="${esc(L[k] || '#')}" target="_blank" rel="noopener" title="${title}" aria-label="${esc(m.name)} ${title}">${ICON[k]}</a>`;
-  return one('chzzk', '치지직') + one('x', 'X') + one('youtube', '유튜브');
+  return one('chzzk', t('link.chzzk')) + one('x', t('link.x')) + one('youtube', t('link.youtube'));
 }
 
 function starBtn(it) {
   const on = Favs.has(it.id);
-  return `<button type="button" class="star ${on ? 'on' : ''}" data-fav="${esc(it.id)}" aria-label="별표" aria-pressed="${on}">${on ? ICON.star : ICON.starO}</button>`;
+  return `<button type="button" class="star ${on ? 'on' : ''}" data-fav="${esc(it.id)}" aria-label="${esc(t('list.star'))}" aria-pressed="${on}">${on ? ICON.star : ICON.starO}</button>`;
 }
 
 function emptyBox(text, kind, members, group) {
@@ -50,12 +47,12 @@ function songList(items, label) {
     <li class="song ${Player.current()?.id === it.id ? 'now' : ''}" data-play="${esc(it.id)}">
       <span class="s-n">${pad2(i + 1)}</span>
       <span class="s-th" style="background-image:url('${esc(it.thumb || '')}')">${it.playable ? `<i>${ICON.play}</i>` : ''}</span>
-      <span class="s-t"><b>${esc(it.title)}</b><small>${esc(memberNames(it).join(' · '))}${it.group && Data.group(it.group) ? ` · ${esc(Data.group(it.group).label)} 단체` : it.group === 'all' ? ' · 전체' : ''}</small></span>
-      <span class="srcs">${it.ytId ? '<span>YouTube</span>' : ''}${it.hasDrive ? '<span>Drive</span>' : ''}</span>
+      <span class="s-t"><b>${esc(it.title)}</b><small>${esc(memberNames(it).join(' · '))}${it.group && Data.group(it.group) ? ` · ${esc(t('list.groupTag', { label: Data.group(it.group).label }))}` : it.group === 'all' ? ` · ${esc(t('list.allTag'))}` : ''}</small></span>
+      <span class="srcs">${it.ytId ? `<span>${esc(t('list.srcYt'))}</span>` : ''}${it.hasDrive ? `<span>${esc(t('list.srcDrive'))}</span>` : ''}</span>
       <span class="s-x">
         ${starBtn(it)}
         <a class="icon-btn sm" href="${esc(it.open)}" target="_blank" rel="noopener" aria-label="${esc(t('list.open'))}" title="${esc(t('list.open'))}">${ICON.ext}</a>
-        ${canDelete(it) ? `<button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="지우기">${ICON.trash}</button>` : ''}
+        ${canDelete(it) ? `<button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="${esc(t('list.delete'))}">${ICON.trash}</button>` : ''}
       </span>
       <span class="playc">${ICON.play}</span>
     </li>`).join('')}</ol>`;
@@ -66,8 +63,8 @@ function clipGrid(items) {
   return `<div class="clips">${items.map(it => `
     <article class="clip" data-view-item="${esc(it.id)}">
       <div class="c-th" style="${it.thumb ? `background-image:url('${esc(it.thumb)}')` : ''}">${it.thumb ? '' : it.link?.type === 'chzzk' ? ICON.chzzk : it.link?.type === 'x' ? ICON.x : ICON.video}</div>
-      <div class="c-meta"><b>${esc(it.title || '클립')}</b><small>${esc(memberNames(it).join(' · '))}${it.by ? ` · ${esc(it.by)}` : ''}</small></div>
-      <div class="c-x">${starBtn(it)}${canDelete(it) ? `<button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="지우기">${ICON.trash}</button>` : ''}</div>
+      <div class="c-meta"><b>${esc(it.title || t('list.clipTitle'))}</b><small>${esc(memberNames(it).join(' · '))}${it.by ? ` · ${esc(it.by)}` : ''}</small></div>
+      <div class="c-x">${starBtn(it)}${canDelete(it) ? `<button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="${esc(t('list.delete'))}">${ICON.trash}</button>` : ''}</div>
     </article>`).join('')}</div>`;
 }
 
@@ -75,8 +72,8 @@ function imageGrid(items) {
   if (!items.length) return '';
   return `<div class="masonry">${items.map(it => `
     <figure class="art" data-view-item="${esc(it.id)}">
-      ${it.thumb ? `<img src="${esc(it.thumb)}" alt="${esc(it.title)}" loading="lazy">` : `<div class="art-link">${it.link?.type === 'x' ? ICON.x : ICON.ext}<span>${esc(it.title || '링크로 보기')}</span></div>`}
-      <figcaption><span>${esc(it.title)}${it.by ? ` · ${esc(it.by)}` : ''}</span>${starBtn(it)}${canDelete(it) ? `<button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="지우기">${ICON.trash}</button>` : ''}</figcaption>
+      ${it.thumb ? `<img src="${esc(it.thumb)}" alt="${esc(it.title)}" loading="lazy">` : `<div class="art-link">${it.link?.type === 'x' ? ICON.x : ICON.ext}<span>${esc(it.title || t('list.linkView'))}</span></div>`}
+      <figcaption><span>${esc(it.title)}${it.by ? ` · ${esc(it.by)}` : ''}</span>${starBtn(it)}${canDelete(it) ? `<button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="${esc(t('list.delete'))}">${ICON.trash}</button>` : ''}</figcaption>
     </figure>`).join('')}</div>`;
 }
 
@@ -109,7 +106,7 @@ function renderHome() {
         <div class="bn-stats">
           <div><b>${songs}</b><small>${esc(t('home.songs'))}</small></div>
           <div><b>${others}</b><small>${esc(t('home.others'))}</small></div>
-          ${s.fanCafe ? `<a class="cafe" href="${esc(s.fanCafe)}" target="_blank" rel="noopener" aria-label="${esc(t('home.cafe'))}" title="${esc(t('home.cafe'))}"><img src="assets/logo.svg" alt=""></a>` : ''}
+          ${s.fanCafe ? `<a class="cafe" href="${esc(s.fanCafe)}" target="_blank" rel="noopener" aria-label="${esc(t('home.cafe'))}" title="${esc(t('home.cafe'))}"><img src="${esc(siteImg('cafe', 200))}" alt=""></a>` : ''}
         </div>
       </div>
     </section>
@@ -146,11 +143,12 @@ function memberCard(m, grad) {
 }
 
 function footerHtml() {
-  return `<footer class="foot">
+  const fbg = siteImg('footer');
+  return `<footer class="foot" ${fbg ? `style="background-image:linear-gradient(color-mix(in srgb, var(--wall) 82%, transparent), color-mix(in srgb, var(--wall) 82%, transparent)), url('${esc(fbg)}');background-size:cover;background-position:center"` : ''}>
     <div class="foot-in">
       <div class="foot-top">
         <div class="foot-brand">
-          <div><img src="assets/logo.svg" alt="">STELLIVE <i>Archive</i></div>
+          <div><img src="${esc(siteImg('logo', 200))}" alt="">${esc(t('brand.name'))} <i>${esc(t('brand.sub'))}</i></div>
           <p>${th('footer.note')}</p>
         </div>
         <nav aria-label="${esc(t('footer.archive'))}"><span class="kk">${esc(t('footer.archive'))}</span><a href="#/listen">${esc(t('nav.listen'))}</a><a href="#/group">${esc(t('nav.group'))}</a><a href="#/stars">${esc(t('nav.stars'))}</a></nav>
@@ -160,22 +158,22 @@ function footerHtml() {
       <div class="foot-bot">
         <span>${Auth.user ? esc(t('footer.loginOn', { name: Auth.user.name })) : esc(t('footer.loginOff'))}</span>
         ${Theme.dots()}
-        <a href="#top" data-top>TOP ${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 15l7-7 7 7')}</a>
+        <a href="#top" data-top>${esc(t('footer.top'))} ${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 15l7-7 7 7')}</a>
       </div>
     </div>
   </footer>`;
 }
 
 /* ─── 캘린더 ─── */
-const EVENT_TYPES = { birthday: '생일', debut: '데뷔', event: '이벤트', broadcast: '방송', release: '발매', etc: '기타' };
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const eventType = type => t('event.' + (['birthday', 'debut', 'event', 'broadcast', 'release', 'etc'].includes(type) ? type : 'event'));
+const listOf = key => t(key).split(',').map(x => x.trim());
 
 function eventsOn(y, mo, d) {
   const iso = `${y}-${pad2(mo + 1)}-${pad2(d)}`, md = iso.slice(5), out = [];
   for (const m of Data.site.members) {
     if (m.graduated) continue;
-    if (m.birthday && m.birthday.slice(-5) === md) out.push({ type: 'birthday', title: `${m.name} 생일`, color: m.color });
-    if (m.debut && m.debut.slice(5) === md && +m.debut.slice(0, 4) < y) out.push({ type: 'debut', title: `${m.name} 데뷔 ${y - +m.debut.slice(0, 4)}주년`, color: m.color });
+    if (m.birthday && m.birthday.slice(-5) === md) out.push({ type: 'birthday', title: t('event.birthdayTitle', { name: m.name }), color: m.color });
+    if (m.debut && m.debut.slice(5) === md && +m.debut.slice(0, 4) < y) out.push({ type: 'debut', title: t('event.debutTitle', { name: m.name, n: y - +m.debut.slice(0, 4) }), color: m.color });
   }
   for (const e of Data.site.events) {
     if (e.date <= iso && iso <= (e.end || e.date)) out.push({ type: e.type || 'event', title: e.title, color: Data.member(e.members?.[0])?.color, url: e.url });
@@ -214,20 +212,20 @@ function calendarHtml(big) {
     <div class="cal-side">
       <span class="kk">${esc(t('cal.kicker'))}</span>
       <span class="cal-month">${mo + 1}</span>
-      <span class="cal-ym">${MONTHS[mo]}, ${y}</span>
+      <span class="cal-ym">${esc(listOf('cal.months')[mo] || mo + 1)}, ${y}</span>
       <div class="cal-nav">
         <button type="button" class="icon-btn" data-cal="-1" aria-label="이전 달">${ICON.chevL}</button>
         <button type="button" class="icon-btn" data-cal="1" aria-label="다음 달">${ICON.chevR}</button>
         <button type="button" class="btn sm line" data-cal="0">${esc(t('cal.today'))}</button>
       </div>
-      <h3>${state.calPick ? `${+state.calPick.split('-')[1] + 1}월 ${state.calPick.split('-')[2]}일` : esc(t('cal.upcoming'))}</h3>
+      <h3>${state.calPick ? esc(t('cal.monthDay', { m: +state.calPick.split('-')[1] + 1, d: state.calPick.split('-')[2] })) : esc(t('cal.upcoming'))}</h3>
       ${list.length ? `<ul class="up-list">${list.map(e => `<li style="${e.color ? `--c:${esc(e.color)}` : ''}">
         <span class="d">${state.calPick ? `${e.d.getMonth() + 1}/${e.d.getDate()}` : dday(e.d)}</span>
-        <span class="t"><em>${EVENT_TYPES[e.type] || '일정'} · ${e.d.getMonth() + 1}/${e.d.getDate()}</em>${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a>` : esc(e.title)}</span>
+        <span class="t"><em>${esc(eventType(e.type))} · ${e.d.getMonth() + 1}/${e.d.getDate()}</em>${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a>` : esc(e.title)}</span>
       </li>`).join('')}</ul>` : `<p class="muted">${esc(t('cal.none'))}</p>`}
     </div>
     <div class="cal-main">
-      <div class="cal-dow">${['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(x => `<span>${x}</span>`).join('')}</div>
+      <div class="cal-dow">${listOf('cal.days').slice(0, 7).map(x => `<span>${esc(x)}</span>`).join('')}</div>
       <div class="cal-grid">${cells}</div>
     </div>
   </div>`;
@@ -241,7 +239,7 @@ function renderMember(id, tab) {
   const order = [...active(), ...graduates()];
   const i = order.indexOf(m), prev = order[(i - 1 + order.length) % order.length], next = order[(i + 1) % order.length];
   const counts = Object.fromEntries(KINDS.map(k => [k.id, Data.forMember(id, k.id).length]));
-  tab = PROFILE_TABS.some(t => t[0] === tab) ? tab : 'cover';
+  tab = PROFILE_TABS.includes(tab) ? tab : 'cover';
   const items = Data.forMember(id, tab);
   const art = imgUrl(m.art || m.avatar, 1200);
   const family = ((m.enFull || m.en || m.name).split(' ')[0] || '').toUpperCase();
@@ -252,36 +250,36 @@ function renderMember(id, tab) {
   view.innerHTML = `
     <nav class="pf-nav">
       <a href="#/">${ICON.chevL} ${esc(t('profile.back'))}</a>
-      <span>${m.graduated ? 'GRADUATION' : g ? `${genNo(g)} · ${esc(g.name.toUpperCase())} — ${sameGen.indexOf(m) + 1} / ${sameGen.length}` : ''}</span>
+      <span>${m.graduated ? esc(t('profile.navGrad')) : g ? `${genNo(g)} · ${esc(g.name.toUpperCase())} — ${sameGen.indexOf(m) + 1} / ${sameGen.length}` : ''}</span>
       <a href="#/m/${esc(next.id)}" title="${esc(prev.name)} ← → ${esc(next.name)}">${esc((next.en || next.name).toUpperCase())} ${ICON.chevR}</a>
     </nav>
 
     <article class="pf-card" style="--c:${esc(m.color)}">
       <div class="pf-left">
         <div class="pf-strip" aria-hidden="true"><span>${esc(family)}</span></div>
-        <div class="pf-art">
-          ${art ? `<img src="${esc(art)}" alt="${esc(m.name)} 일러스트">` : `<span class="ph" aria-hidden="true">${esc(m.name.slice(0, 1))}</span>`}
+        <div class="pf-art" ${m.artBg || siteImg('profileBg') ? `style="background:url('${esc(imgUrl(m.artBg, 1600) || siteImg('profileBg'))}') center / cover"` : ''}>
+          ${art ? `<img src="${esc(art)}" alt="${esc(m.name)}">` : `<span class="ph" aria-hidden="true">${esc(m.name.slice(0, 1))}</span>`}
           <span class="ci" aria-hidden="true">${th('profile.ci')}</span>
         </div>
       </div>
       <div class="pf-right">
         <div>
           <h1 class="pf-name">${esc(m.en || m.name)}</h1>
-          <div class="pf-unit"><i>Stellive · ${m.graduated ? 'Graduation' : esc(g?.name || '')}</i></div>
+          <div class="pf-unit"><i>${esc(t('profile.unitLine', { unit: m.graduated ? t('profile.gradUnit') : g?.name || '' }))}</i></div>
         </div>
         <div class="pf-ko">
           <b>${esc(m.fullName || m.name)}</b>
           <span class="sw" aria-hidden="true"><span style="background:var(--c)"></span><span style="background:color-mix(in srgb, var(--c) 55%, #6d6fd8)"></span><span style="background:color-mix(in srgb, var(--c) 30%, #2b2b78)"></span></span>
         </div>
         <div class="tags">
-          ${bd ? `<div class="tag"><span><b>${esc(t('profile.birthday'))}</b>${bd[0]}월 ${bd[1]}일</span></div>` : ''}
+          ${bd ? `<div class="tag"><span><b>${esc(t('profile.birthday'))}</b>${esc(t('profile.month', { m: bd[0], d: bd[1] }))}</span></div>` : ''}
           ${m.debut ? `<div class="tag"><span><b>${esc(t('profile.debut'))}</b>${fmtDate(m.debut).replace(/\./g, '. ')}</span></div>` : ''}
           <div class="tag"><span><b>${esc(t('profile.unit'))}</b>${m.graduated ? esc(t('profile.graduated')) : `${esc(g?.label || '')} ${esc((g?.name || '').toUpperCase())}`}</span></div>
         </div>
         ${m.bio ? `<div class="summary"><h3>${esc(t('profile.summary'))}</h3><p>${esc(m.bio)}</p></div>` : ''}
         ${m.quote ? `<p class="quote">“${esc(m.quote)}”</p>` : ''}
         <div class="pf-links">
-          ${['chzzk', 'x', 'youtube'].map(k => m.links?.[k] ? `<a class="btn sm" href="${esc(m.links[k])}" target="_blank" rel="noopener">${ICON[k]} ${{ chzzk: '치지직', x: 'X', youtube: 'YouTube' }[k]}</a>` : '').join('')}
+          ${['chzzk', 'x', 'youtube'].map(k => m.links?.[k] ? `<a class="btn sm" href="${esc(m.links[k])}" target="_blank" rel="noopener">${ICON[k]} ${esc(t('link.' + k))}</a>` : '').join('')}
           <button type="button" class="btn sm solid" data-playmember="${esc(m.id)}">${ICON.play} ${esc(t('profile.playAll'))}</button>
         </div>
         <div class="mini">
@@ -293,7 +291,7 @@ function renderMember(id, tab) {
     </article>
 
     <nav class="tabs" aria-label="종류">
-      ${PROFILE_TABS.map(([k, en]) => `<a href="#/m/${esc(m.id)}/${k}" class="${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}><span class="ko">${KIND[k].name}</span><i>${en}</i>${counts[k] ? `<small>${counts[k]}</small>` : ''}</a>`).join('')}
+      ${PROFILE_TABS.map(k => `<a href="#/m/${esc(m.id)}/${k}" class="${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}><span class="ko">${esc(KIND[k].name)}</span><i>${esc(KIND[k].en)}</i>${counts[k] ? `<small>${counts[k]}</small>` : ''}</a>`).join('')}
     </nav>
     <div>
       <div class="list-tools"><button type="button" class="btn sm line" data-upload='${esc(JSON.stringify({ kind: tab, members: [m.id] }))}'>${esc(t('list.add', { kind: KIND[tab].name }))}</button></div>
@@ -321,7 +319,7 @@ function renderGroup(gid, tab) {
       ${groups.map(x => `<a href="#/group/${x.id}/${tab}" class="${gid === x.id ? 'on' : ''}"><b>${genNo(x)}</b><i>${esc(x.name)}</i></a>`).join('')}
       <a href="#/group/duo/${tab}" class="${gid === 'duo' ? 'on' : ''}"><b>${esc(t('group.duo'))}</b><i>${esc(t('group.duoKo'))}</i></a>
     </nav>
-    <nav class="tabs" aria-label="종류">${GROUP_KINDS.map(k => `<a href="#/group/${gid}/${k}" class="${tab === k ? 'on' : ''}"><span class="ko">${KIND[k].name}</span><i>${GROUP_EN[k]}</i><small>${pool.filter(i => i.kind === k).length || ''}</small></a>`).join('')}</nav>
+    <nav class="tabs" aria-label="종류">${GROUP_KINDS.map(k => `<a href="#/group/${gid}/${k}" class="${tab === k ? 'on' : ''}"><span class="ko">${esc(KIND[k].name)}</span><i>${esc(KIND[k].en)}</i><small>${pool.filter(i => i.kind === k).length || ''}</small></a>`).join('')}</nav>
     <div>
       <div class="list-tools"><button type="button" class="btn sm line" data-upload='${esc(JSON.stringify({ kind: tab, group: g ? g.id : gid === 'all' ? 'all' : '', members: [] }))}'>${esc(t('list.add', { kind: KIND[tab].name }))}</button></div>
       <div style="margin-top:72px">${itemsBlock(tab, items, `${g ? g.label : gid === 'duo' ? t('group.duoKo') : t('group.ko')} ${KIND[tab].name}`, { group: g?.id, members: [] })}</div>
@@ -344,16 +342,16 @@ function renderListen() {
     </div>
     <div class="modes">
       <button type="button" class="mode" data-mode="random"><span class="bd">01</span><span class="ko">${esc(t('listen.random'))}</span><small>${esc(t('list.count', { n: music.length }))}</small></button>
-      <button type="button" class="mode" data-mode="stars"><span class="bd">02</span><span class="ko">${esc(t('listen.stars'))}</span><small>${esc(t('list.count', { n: favs.length }))} · ${Auth.user ? '구글 계정' : '이 기기'}</small></button>
+      <button type="button" class="mode" data-mode="stars"><span class="bd">02</span><span class="ko">${esc(t('listen.stars'))}</span><small>${esc(t('list.count', { n: favs.length }))} · ${esc(Auth.user ? t('listen.account') : t('listen.device'))}</small></button>
       <button type="button" class="mode" data-mode="newest"><span class="bd">03</span><span class="ko">${esc(t('listen.newest'))}</span><small>${esc(t('listen.newestDesc'))}</small></button>
     </div>
     <section style="display:flex;flex-direction:column;gap:20px">
-      <div class="sec-h"><span class="kk">MEMBERS</span><span class="ko">${esc(t('listen.members'))}</span></div>
+      <div class="sec-h"><span class="kk">${esc(t('listen.membersK'))}</span><span class="ko">${esc(t('listen.members'))}</span></div>
       <div class="mgrid">${active().map(m => {
         const n = music.filter(i => i.members.includes(m.id)).length;
         return `<button type="button" class="mpick" data-playmember="${esc(m.id)}" style="--c:${esc(m.color)}" ${n ? '' : 'disabled'}>${avatarHtml(m, 'av md')}<b>${esc(m.name)}</b><small>${esc(t('list.count', { n }))}</small></button>`;
       }).join('')}</div>
-      <div class="sec-h" style="margin-top:20px"><span class="kk">UNITS</span><span class="ko">${esc(t('listen.units'))}</span></div>
+      <div class="sec-h" style="margin-top:20px"><span class="kk">${esc(t('listen.unitsK'))}</span><span class="ko">${esc(t('listen.units'))}</span></div>
       <div class="mgrid">${Data.site.groups.map(g => {
         const ids = Data.membersOf(g.id).map(m => m.id);
         const n = music.filter(i => i.group === g.id || i.members.some(x => ids.includes(x))).length;
@@ -362,7 +360,7 @@ function renderListen() {
     </section>
     <section>
       <input class="search" id="songSearch" placeholder="${esc(t('listen.search'))}" value="${esc(state.search)}" aria-label="${esc(t('listen.search'))}">
-      ${shown.length ? songList(shown, t('listen.ko')) : emptyBox(esc(t('list.empty', { kind: '노래' })), 'cover', [])}
+      ${shown.length ? songList(shown, t('listen.ko')) : emptyBox(esc(t('list.empty', { kind: t('stars.music') })), 'cover', [])}
     </section>`;
   const inp = $('#songSearch');
   inp.addEventListener('input', () => {
@@ -382,9 +380,9 @@ function renderStars() {
   view.innerHTML = `
     <header class="page-h"><span class="big">${esc(t('stars.big'))}</span><span class="ko">${esc(t('stars.ko'))}</span><p>${Auth.user ? esc(t('stars.login', { name: Auth.user.name })) : esc(t('stars.local'))}</p></header>
     ${items.length ? '' : `<div class="empty"><div class="empty-star">${ICON.sparkle}</div><p>${esc(t('stars.empty'))}</p></div>`}
-    ${music.length ? `<section><div class="sec-h"><span class="ko">노래</span></div>${itemsBlock('cover', music, t('stars.ko'))}</section>` : ''}
-    ${clips.length ? `<section><div class="sec-h" style="margin-bottom:16px"><span class="ko">클립</span></div>${clipGrid(clips)}</section>` : ''}
-    ${arts.length ? `<section><div class="sec-h" style="margin-bottom:16px"><span class="ko">팬아트 · 짤</span></div>${imageGrid(arts)}</section>` : ''}`;
+    ${music.length ? `<section><div class="sec-h"><span class="ko">${esc(t('stars.music'))}</span></div>${itemsBlock('cover', music, t('stars.ko'))}</section>` : ''}
+    ${clips.length ? `<section><div class="sec-h" style="margin-bottom:16px"><span class="ko">${esc(t('stars.clips'))}</span></div>${clipGrid(clips)}</section>` : ''}
+    ${arts.length ? `<section><div class="sec-h" style="margin-bottom:16px"><span class="ko">${esc(t('stars.arts'))}</span></div>${imageGrid(arts)}</section>` : ''}`;
 }
 
 function renderCalendarPage() {
@@ -483,8 +481,8 @@ function renderDrawer() {
   </div>` : '';
   $('#drawer').innerHTML = `
     <div class="dr-head">
-      <img src="assets/logo.svg" alt="">
-      <div><b>STELLIVE</b><small>${esc(t('nav.title'))}</small></div>
+      <img src="${esc(siteImg('logo', 200))}" alt="">
+      <div><b>${esc(t('brand.name'))}</b><small>${esc(t('nav.title'))}</small></div>
       <button type="button" class="icon-btn" data-drawer-close aria-label="목차 닫기">${ICON.close}</button>
     </div>
     <nav class="dr-nav">${NAV.map(([href, ko, en], i) => `<a href="${href}" data-href="${href}"><span class="no">${pad2(i + 1)}</span><span class="ko">${esc(t(ko))}</span><span class="en">${esc(t(en))}</span></a>`).join('')}</nav>
@@ -497,6 +495,9 @@ function renderDrawer() {
       <div class="row">${Theme.dots()}<span class="grow"></span><button type="button" class="btn sm line" data-intro>${esc(t('nav.intro'))}</button></div>
       <div class="row"><button type="button" class="btn sm solid" data-upload="{}">${esc(t('nav.upload'))}</button><div id="login"></div></div>
     </div>`;
+  const dbg = siteImg('drawer');
+  $('#drawer').style.backgroundImage = dbg ? `linear-gradient(color-mix(in srgb, var(--wall) 80%, transparent), color-mix(in srgb, var(--wall) 80%, transparent)), url("${dbg}")` : '';
+  $('#drawer').style.backgroundSize = dbg ? 'cover' : '';
   $('#tbLinks').innerHTML = NAV.map(([href, , en]) => `<a href="${href}" data-href="${href}">${esc(t(en))}</a>`).join('');
   paintLogin(Auth.user);
   markNav();
@@ -512,6 +513,14 @@ function markNav() {
 // data-t="키" 가 붙은 곳에 글자를 채운다
 function fillTexts(root = document) {
   $$('[data-t]', root).forEach(el => { el.innerHTML = th(el.dataset.t); });
+  $$('[data-tp]', root).forEach(el => { el.placeholder = t(el.dataset.tp); });
+  $$('[data-img]', root).forEach(el => { el.src = siteImg(el.dataset.img, 400); });
+  if (root === document) {
+    document.title = t('meta.title');
+    $('meta[name=description]')?.setAttribute('content', t('meta.description'));
+  }
+  const fav = $('link[rel=icon]');
+  if (fav) fav.href = siteImg('logo', 128);
 }
 
 /* ─── 가장자리 메뉴 ─── */
@@ -541,7 +550,11 @@ const Intro = {
   shouldShow() { return store.get('introSkip') !== this.today(); },
   isOpen() { return !$('#intro').hidden && !$('#intro').classList.contains('leaving'); },
   show() {
-    const img = imgUrl(Data.site?.banner?.image, 1920);
+    const img = siteImg('intro', 1920);
+    const crest = Data.site?.images?.crest ? siteImg('crest', 800) : '';
+    $('#introCrestImg').hidden = !crest;
+    $('#introCrestSvg').style.display = crest ? 'none' : '';
+    if (crest) $('#introCrestImg').src = crest;
     const sky = $('#introSky');
     sky.style.backgroundImage = img ? `url("${img}")` : '';
     sky.classList.toggle('has-img', !!img);
@@ -616,24 +629,24 @@ document.addEventListener('click', e => {
   if ((el = tg.closest('[data-playmember]'))) {
     const m = Data.member(el.dataset.playmember);
     const kinds = location.hash.startsWith('#/listen') ? state.listenKinds : new Set(['cover', 'original', 'album']);
-    Player.play(Data.items.filter(i => kinds.has(i.kind) && i.members.includes(m.id)), null, `${m.name} 노래`);
+    Player.play(Data.items.filter(i => kinds.has(i.kind) && i.members.includes(m.id)), null, t('listen.memberQueue', { name: m.name }));
     return;
   }
   if ((el = tg.closest('[data-playgroup]'))) {
     const g = Data.group(el.dataset.playgroup), ids = Data.membersOf(g.id).map(m => m.id);
-    Player.play(Data.items.filter(i => state.listenKinds.has(i.kind) && (i.group === g.id || i.members.some(x => ids.includes(x)))), null, `${g.label} 노래`);
+    Player.play(Data.items.filter(i => state.listenKinds.has(i.kind) && (i.group === g.id || i.members.some(x => ids.includes(x)))), null, t('listen.unitQueue', { label: g.label }));
     return;
   }
   if ((el = tg.closest('[data-mode]'))) {
     const music = Data.items.filter(i => state.listenKinds.has(i.kind) && i.playable);
     const mode = el.dataset.mode;
-    if (mode === 'random') { Player.shuffle = true; Player.paintModes(); Player.play(music, null, '전체 랜덤'); }
+    if (mode === 'random') { Player.shuffle = true; Player.paintModes(); Player.play(music, null, t('listen.random')); }
     if (mode === 'stars') {
       const favs = music.filter(i => Favs.has(i.id));
-      if (!favs.length) return toast('별표한 노래가 없다');
-      Player.play(favs, null, '별표한 노래');
+      if (!favs.length) return toast(t('stars.none'));
+      Player.play(favs, null, t('listen.stars'));
     }
-    if (mode === 'newest') { Player.shuffle = false; Player.paintModes(); Player.play(music, null, '최신순'); }
+    if (mode === 'newest') { Player.shuffle = false; Player.paintModes(); Player.play(music, null, t('listen.newest')); }
     return;
   }
   if (tg.closest('[data-prefer]')) { Player.setPrefer(Player.prefer === 'drive' ? 'youtube' : 'drive'); renderListen(); return; }
@@ -689,10 +702,10 @@ function openViewer(it) {
   else if (it.driveId) html = `<div class="ratio"><iframe src="https://drive.google.com/file/d/${it.driveId}/preview" allow="autoplay" allowfullscreen title="${esc(it.title)}"></iframe></div>`;
   else if (it.directUrl) html = `<video class="big-vid" controls autoplay playsinline src="${esc(it.directUrl)}"></video>`;
   else if (it.link?.type === 'x') html = `<div class="x-embed"><blockquote class="twitter-tweet" data-theme="${Theme.get() === 'dark' ? 'dark' : 'light'}" data-lang="ko"><a href="${esc(it.url.replace('//x.com', '//twitter.com'))}"></a></blockquote></div>`;
-  else html = `<div class="empty"><p>여기서는 바로 못 보여 준다</p></div>`;
+  else html = `<div class="empty"><p>${esc(t('viewer.cant'))}</p></div>`;
   body.innerHTML = html;
   $('#viewer .viewer-foot').innerHTML = `
-    <div><b>${esc(it.title)}</b><small>${esc(memberNames(it).join(' · '))}${it.by ? ` · 올린 사람 ${esc(it.by)}` : ''}</small></div>
+    <div><b>${esc(it.title)}</b><small>${esc(memberNames(it).join(' · '))}${it.by ? ` · ${esc(t('viewer.by', { name: it.by }))}` : ''}</small></div>
     <span class="grow"></span>${starBtn(it)}
     <a class="btn sm" href="${esc(it.open)}" target="_blank" rel="noopener">${ICON.ext} ${esc(t('list.open'))}</a>`;
   $('#viewer').hidden = false;
@@ -725,11 +738,10 @@ function openUpload(pre = {}) {
   }
   $('#upKind').innerHTML = KINDS.map(k => `<button type="button" class="chip ${k.id === up.kind ? 'on' : ''}" data-uk="${k.id}" aria-pressed="${k.id === up.kind}">${k.name}</button>`).join('');
   $('#upMembers').innerHTML = Data.site.members.map(m => `<button type="button" class="chip ${up.members.has(m.id) ? 'on' : ''}" data-um="${esc(m.id)}" aria-pressed="${up.members.has(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}${esc(m.name)}</button>`).join('');
-  $('#upGroup').innerHTML = `<option value="">아님</option><option value="all">전체 단체곡</option>` +
+  $('#upGroup').innerHTML = `<option value="">${esc(t('upload.groupNo'))}</option><option value="all">${esc(t('upload.groupAll'))}</option>` +
     Data.site.groups.map(g => `<option value="${esc(g.id)}">${esc(g.label)} ${esc(g.name)}</option>`).join('');
   $('#upGroup').value = pre.group || '';
   ['#upTitle', '#upUrl', '#upAlt', '#upFile'].forEach(s => ($(s).value = ''));
-  $('.drop-txt').textContent = '드라이브에 올릴 파일 — 끌어다 놓거나 눌러서 고르기';
   $('#upStatus').textContent = '';
   fillTexts($('#upload'));
   $('#upHint').textContent = !LIVE ? t('upload.demo') : Auth.user ? t('upload.as', { name: Auth.user.name }) : t('upload.login');
@@ -743,7 +755,7 @@ $('#upload').addEventListener('click', e => {
 });
 $('#upFile').addEventListener('change', () => {
   const f = $('#upFile').files[0];
-  $('.drop-txt').textContent = f ? `${f.name} · ${(f.size / 1048576).toFixed(1)}MB` : '드라이브에 올릴 파일 — 끌어다 놓거나 눌러서 고르기';
+  $('.drop-txt').textContent = f ? `${f.name} · ${(f.size / 1048576).toFixed(1)}MB` : t('upload.drop');
   if (f && !$('#upTitle').value) $('#upTitle').value = f.name.replace(/\.[^.]+$/, '');
 });
 
@@ -752,27 +764,27 @@ $('#upload form').addEventListener('submit', async e => {
   const status = $('#upStatus');
   const members = [...up.members], group = $('#upGroup').value, title = $('#upTitle').value.trim();
   const url = $('#upUrl').value.trim(), alt = $('#upAlt').value.trim(), f = $('#upFile').files[0];
-  if (!members.length && !group) return (status.textContent = '멤버를 고르자');
-  if (!url && !alt && !f) return (status.textContent = '링크나 파일을 하나 이상 넣자');
+  if (!members.length && !group) return (status.textContent = t('upload.errMember'));
+  if (!url && !alt && !f) return (status.textContent = t('upload.errNone'));
   const btn = $('#upSubmit');
   try {
     btn.disabled = true;
     let item;
     if (f) {
-      if (f.size > (CFG.maxUploadMB || 35) * 1048576) throw new Error(`${CFG.maxUploadMB || 35}MB 까지만 된다. 큰 영상은 드라이브에 직접 올리고 링크를 붙이자`);
-      if (!LIVE) throw new Error('파일 올리기는 서버를 연결한 뒤에 된다');
-      status.textContent = '파일 읽는 중…';
+      if (f.size > (CFG.maxUploadMB || 35) * 1048576) throw new Error(t('upload.errSize', { mb: CFG.maxUploadMB || 35 }));
+      if (!LIVE) throw new Error(t('upload.errDemo'));
+      status.textContent = t('upload.reading');
       const data = await fileToBase64(f);
-      status.textContent = '드라이브에 올리는 중… (큰 파일은 1분쯤 걸린다)';
+      status.textContent = t('upload.uploading');
       item = (await api('upload', { kind: up.kind, title, members, group, filename: f.name, mimeType: f.type, data, url })).item;
     } else {
       const main = url || alt, second = url ? alt : '';
-      if (!/^https?:\/\//.test(main) || (second && !/^https?:\/\//.test(second))) throw new Error('링크가 이상하다');
+      if (!/^https?:\/\//.test(main) || (second && !/^https?:\/\//.test(second))) throw new Error(t('upload.errLink'));
       if (!LIVE) {
         item = { id: 'l_' + Date.now(), kind: up.kind, title: title || main, src: 'link', url: main, alt: second, members, group, by: '나', at: new Date().toISOString() };
         store.set('demoItems', [item, ...store.get('demoItems', [])]);
       } else {
-        status.textContent = '올리는 중…';
+        status.textContent = t('upload.sending');
         item = (await api('addLink', { kind: up.kind, title, url: main, alt: second, members, group })).item;
       }
     }
@@ -802,7 +814,7 @@ function paintLogin(user) {
   const el = $('#login');
   if (!el) return;
   if (user) {
-    el.innerHTML = `<div class="me">${user.picture ? `<img src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">` : ''}<span>${esc(user.name)}</span><button type="button" class="tiny" id="logout">로그아웃</button></div>`;
+    el.innerHTML = `<div class="me">${user.picture ? `<img src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">` : ''}<span>${esc(user.name)}</span><button type="button" class="tiny" id="logout">${esc(t('login.logout'))}</button></div>`;
     $('#logout').onclick = () => Auth.logout();
   } else Auth.renderButton(el);
 }
@@ -812,7 +824,7 @@ Favs.on(() => {
   $$('[data-fav]').forEach(b => { const on = Favs.has(b.dataset.fav); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.innerHTML = on ? ICON.star : ICON.starO; });
   if (location.hash.startsWith('#/stars')) route(true);
 });
-Data.on(() => { applySiteStyle(Data.site); fillTexts(); renderDrawer(); route(true); });
+Data.on(() => { applySiteStyle(Data.site); applyKindNames(); fillTexts(); renderDrawer(); route(true); });
 addEventListener('hashchange', () => route());
 
 $('#cornerDots').innerHTML = Theme.dots();

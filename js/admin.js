@@ -47,6 +47,7 @@ async function gate(user) {
 function open() {
   if (!draft) draft = clone(Data.site);
   applySiteStyle(draft);
+  applyKindNames();
   $('#app').hidden = false;
   $('#savebar').hidden = false;
   $('#dlJson').hidden = LIVE;
@@ -114,15 +115,13 @@ function bindInputs(target) {
 /* ─── 사이트 ─── */
 function paneSite() {
   draft.banner ||= {};
+  draft.images ||= {};
   pane.innerHTML = `
     <div class="editor">
-      <h2>첫화면 배너</h2>
-      <p class="muted sm">첫 화면 오른쪽과 홈 맨 위 배너에 같이 나온다. 비워 두면 테마 색 하늘이 나온다.</p>
-      ${imgField('배너 이미지 (가로로 긴 것, 3:1 정도)', draft.banner.image, 'banner.image', true)}
-      <div class="row">
-        <label class="field"><span>제목</span><input data-k="banner.title" value="${esc(draft.banner.title || '')}"></label>
-        <label class="field"><span>한 줄 소개</span><input data-k="banner.subtitle" value="${esc(draft.banner.subtitle || '')}"></label>
-      </div>
+      <h2>이미지</h2>
+      <p class="muted sm">사이트에 나오는 그림 전부. 주소나 드라이브 링크를 넣거나 "올리기"로 올린다. 비워 두면 기본 그림이 나온다. 글자는 "글자" 탭에 있다.</p>
+      ${imgField('배너 (홈 맨 위 · 첫 화면 오른쪽, 가로로 긴 그림)', draft.banner.image, 'banner.image', true)}
+      ${IMAGE_SLOTS.map(([k, label]) => imgField(label, draft.images[k], `images.${k}`, k === 'drawer' || k === 'footer' || k === 'intro' || k === 'profileBg' ? true : '')).join('')}
       <h2 style="margin-top:18px">링크 · 연락처</h2>
       <div class="row">
         <label class="field"><span>팬 카페 주소 <em>배너의 로고 동그라미를 누르면 여기로 간다</em></span><input type="url" data-k="fanCafe" value="${esc(draft.fanCafe || '')}" placeholder="https://cafe.naver.com/…"></label>
@@ -197,6 +196,7 @@ function paneMembers() {
         </div>
         ${imgField('프로필 사진 (카드·동그라미)', m.avatar, `members.${i}.avatar`)}
         ${imgField('전신 일러스트 (프로필 왼쪽 큰 그림 · 배경 투명 PNG 추천)', m.art, `members.${i}.art`, 'tall')}
+        ${imgField('전신 일러스트 뒤 배경 (비우면 사이트 기본 배경)', m.artBg, `members.${i}.artBg`, true)}
         <label class="field"><span>소개 <em>Summary — 두세 줄이 가장 예쁘다</em></span><textarea data-k="members.${i}.bio">${esc(m.bio || '')}</textarea></label>
         <label class="field"><span>대표 한마디 <em>프로필에 큰 기울임 글씨로</em></span><input data-k="members.${i}.quote" value="${esc(m.quote || '')}"></label>
         <div class="row">
@@ -231,7 +231,7 @@ function paneMembers() {
     if (!name) return;
     const id = prompt('영문 id (주소에 쓰이고, 나중에 못 바꾼다)', slug(name));
     if (!id || ms.some(x => x.id === id)) return toast('id 가 비었거나 이미 있다', true);
-    ms.push({ id: slug(id), name, fullName: '', en: '', enFull: '', graduated: false, art: '', quote: '', group: draft.groups[draft.groups.length - 1]?.id || '', color: '#9fb4ff', avatar: '', banner: '', bio: '', birthday: '', debut: '', links: { chzzk: '', x: '', youtube: '' } });
+    ms.push({ id: slug(id), name, fullName: '', en: '', enFull: '', graduated: false, art: '', artBg: '', quote: '', group: draft.groups[draft.groups.length - 1]?.id || '', color: '#9fb4ff', avatar: '', banner: '', bio: '', birthday: '', debut: '', links: { chzzk: '', x: '', youtube: '' } });
     pickedMember = slug(id);
     markDirty(); route();
   };

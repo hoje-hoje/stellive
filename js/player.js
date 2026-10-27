@@ -17,8 +17,8 @@ const Player = {
     this.video.addEventListener('error', () => {
       const it = this.current();
       if (!it || this.kind !== 'video' || !this.video.getAttribute('src')) return;
-      if (it.ytId && !this.tried.has('youtube')) return this.failover('드라이브 파일이 열리지 않는다.');
-      if (it.driveId) { this.showFrame(it); toast('직접 재생이 안 돼서 드라이브 미리보기로 열었다'); }
+      if (it.ytId && !this.tried.has('youtube')) return this.failover(t('player.driveError'));
+      if (it.driveId) { this.showFrame(it); toast(t('player.frame')); }
     });
 
     this.bar.addEventListener('click', e => {
@@ -64,7 +64,7 @@ const Player = {
   /* 목록 통째로 넘겨서 재생 시작 */
   play(items, startId, label) {
     const list = items.filter(i => i.playable);
-    if (!list.length) { toast('틀 수 있는 노래가 없다'); return; }
+    if (!list.length) { toast(t('player.noSongs')); return; }
     this.queue = list;
     this.label = label || '';
     let i = startId ? list.findIndex(x => x.id === startId) : 0;
@@ -114,10 +114,10 @@ const Player = {
     const other = this.source === 'youtube' ? 'drive' : 'youtube';
     const ok = other === 'youtube' ? !!it.ytId : it.hasDrive || !!it.directUrl;
     if (ok && !this.tried.has(other)) {
-      toast(`${why} → ${other === 'drive' ? '드라이브 파일' : '유튜브'}로 튼다`);
+      toast(t('player.switch', { why, to: other === 'drive' ? t('player.toDrive') : t('player.toYt') }));
       return this.playSource(it, other);
     }
-    toast(`${why} 다음 곡으로 넘어간다`);
+    toast(t('player.skip', { why }));
     setTimeout(() => { if (this.current() === it) this.next(true); }, 1200);
   },
 
@@ -155,7 +155,7 @@ const Player = {
   async playYT(it) {
     this.stopOthers('yt');
     try { await this.loadYT(); }
-    catch { if (this.current() === it) this.failover('유튜브가 열리지 않는다.'); return; }
+    catch { if (this.current() === it) this.failover(t('player.ytBlocked')); return; }
     if (this.current() !== it) return;
     if (!this.yt) {
       this.yt = await new Promise(ok => {
@@ -169,7 +169,7 @@ const Player = {
               if (e.data === YT.PlayerState.PLAYING) this.setPlaying(true);
               if (e.data === YT.PlayerState.PAUSED) this.setPlaying(false);
             },
-            onError: () => this.failover('유튜브에서 재생이 막혀 있다.'),
+            onError: () => this.failover(t('player.ytError')),
           },
         });
       });
@@ -186,7 +186,7 @@ const Player = {
     this.stopOthers('frame');
     this.frame.src = `https://drive.google.com/file/d/${it.driveId}/preview`;
     this.setPlaying(true);
-    if (!this._warned) { this._warned = true; toast('드라이브 미리보기 창이라 끝나도 자동으로 안 넘어간다 (README: API 키)'); }
+    if (!this._warned) { this._warned = true; toast(t('player.frameNote')); }
   },
 
   stopOthers(keep) {
@@ -250,7 +250,7 @@ const Player = {
     const b = $('[data-p="prefer"]', this.bar);
     if (!b) return;
     b.textContent = this.prefer === 'drive' ? t('player.preferDrive') : t('player.preferYt');
-    b.title = '누르면 바뀐다. 유튜브가 막힌 곳(학교 등)에서는 드라이브 먼저로 두자';
+    b.title = t('player.preferTitle');
   },
   paintSource() {
     const el = $('#pSrc');
