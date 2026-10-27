@@ -14,6 +14,10 @@ const ADMIN_EMAILS = [
 /* ③ 사이트 주소 — 처음 setup 할 때 site.json 을 여기서 받아온다 */
 const SITE_URL = 'https://hoje-hoje.github.io/stellive/';
 
+/* ④ 파일을 모을 드라이브 폴더 id — 비워 두면 내 드라이브에 '스텔라이브 아카이브' 폴더를 새로 만든다.
+      공유 드라이브를 쓰려면 그 주소 끝의 id 를 넣는다 (drive.google.com/drive/folders/여기) */
+const ROOT_FOLDER_ID = '0ANOOm7FkHIauUk9PVA';
+
 /* 아래는 고칠 필요 없음 ─────────────────────────────────── */
 
 const ROOT_NAME   = '스텔라이브 아카이브';
@@ -30,12 +34,13 @@ const props = PropertiesService.getScriptProperties();
 /* ─── 처음 한 번 실행 ─── */
 function setup() {
   let root;
-  if (props.getProperty('ROOT_ID')) root = DriveApp.getFolderById(props.getProperty('ROOT_ID'));
-  else {
-    root = DriveApp.createFolder(ROOT_NAME);
-    props.setProperty('ROOT_ID', root.getId());
-  }
-  root.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  if (ROOT_FOLDER_ID) root = DriveApp.getFolderById(ROOT_FOLDER_ID);
+  else if (props.getProperty('ROOT_ID')) root = DriveApp.getFolderById(props.getProperty('ROOT_ID'));
+  else root = DriveApp.createFolder(ROOT_NAME);
+  props.setProperty('ROOT_ID', root.getId());
+  // 공유 드라이브 맨 위는 링크 공유를 못 건다 — 파일마다 따로 건다
+  try { root.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { Logger.log('폴더 링크 공유는 건너뜀: ' + e.message); }
+  checkPublicSharing_(root);
 
   if (!props.getProperty('SHEET_ID')) {
     const ss = SpreadsheetApp.create('스텔라이브 아카이브 데이터');
@@ -86,7 +91,7 @@ const ACTIONS = {
     const folder = targetFolder_(site, b.kind, members, b.group);
     const blob = Utilities.newBlob(Utilities.base64Decode(b.data), b.mimeType || 'application/octet-stream', b.filename || 'file');
     const file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    sharePublic_(file);
     const meta = { title: (b.title || '').trim(), members: members, group: b.group || '', byEmail: u.email, byName: u.name };
     if (/^https?:\/\//.test(String(b.url || ''))) meta.url = String(b.url).trim();
     file.setDescription(JSON.stringify(meta));
@@ -162,7 +167,7 @@ const ACTIONS = {
     needAdmin_(u);
     const blob = Utilities.newBlob(Utilities.base64Decode(b.data), b.mimeType || 'image/png', b.filename || 'image');
     const file = subFolder_(sysFolder_(), '이미지').createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    sharePublic_(file);
     return { id: file.getId() };
   },
 
@@ -184,6 +189,23 @@ const ACTIONS = {
     return { site: JSON.parse(f.getBlob().getDataAsString()) };
   },
 };
+
+/* ─── 공개 링크 ───
+   학교 · 회사 계정은 '링크가 있는 모든 사용자' 공유를 관리자가 막아 둔 경우가 있다. 막혀 있으면 사이트 방문자가 파일을 못 본다 */
+function sharePublic_(file) {
+  try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }
+  catch (e) { throw new Error('이 드라이브는 "링크가 있는 모든 사용자" 공유가 막혀 있다. 학교 관리자 설정을 확인하자 (' + e.message + ')'); }
+}
+function checkPublicSharing_(root) {
+  const f = root.createFile('공개 공유 시험.txt', '지워도 된다');
+  try {
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const ok = f.getSharingAccess() === DriveApp.Access.ANYONE_WITH_LINK;
+    Logger.log(ok ? '✅ 공개 링크 공유가 된다' : '❌ 공개 링크 공유가 막혀 있다 — 방문자가 파일을 못 본다');
+  } catch (e) {
+    Logger.log('❌ 공개 링크 공유가 막혀 있다 — 방문자가 파일을 못 본다: ' + e.message);
+  } finally { f.setTrashed(true); }
+}
 
 /* ─── 로그인 확인 ─── */
 function verify_(token) {
