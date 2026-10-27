@@ -61,28 +61,62 @@ function parseLink(url) {
   return { type: 'link' };
 }
 
-// 아이템 하나를 화면에서 쓰기 좋게 풀어둔다
+// 아이템 하나를 화면에서 쓰기 좋게 풀어둔다.
+// 노래 하나에 유튜브(ytId)와 드라이브 파일(driveId)이 둘 다 붙을 수 있다 — 플레이어가 골라서 튼다.
 function enrich(it) {
   if (it._ok) return it;
+  const driveThumb = id => `https://drive.google.com/thumbnail?id=${id}&sz=w640`;
+  const mediaKind = () => (KIND[it.kind]?.music || it.kind === 'clip' ? 'video' : '');
   if (it.src === 'drive') {
     it.driveId = it.id;
     it.media = /^(video|audio)\//.test(it.mime || '') ? (it.mime.startsWith('audio') ? 'audio' : 'video') : '';
     it.isImage = /^image\//.test(it.mime || '');
-    it.thumb = `https://drive.google.com/thumbnail?id=${it.id}&sz=w640`;
+    it.thumb = driveThumb(it.id);
     it.open = `https://drive.google.com/file/d/${it.id}/view`;
+    const p = it.url ? parseLink(it.url) : null;
+    if (p?.type === 'youtube') { it.ytId = p.id; it.thumb = `https://i.ytimg.com/vi/${p.id}/hqdefault.jpg`; it.ytUrl = it.url; }
   } else {
     const p = parseLink(it.url);
     it.link = p;
     it.open = it.url;
-    if (p.type === 'youtube') { it.ytId = p.id; it.thumb = `https://i.ytimg.com/vi/${p.id}/hqdefault.jpg`; }
-    if (p.type === 'drive') { it.driveId = p.id; it.thumb = `https://drive.google.com/thumbnail?id=${p.id}&sz=w640`; it.media = KIND[it.kind]?.music || it.kind === 'clip' ? 'video' : ''; it.isImage = KIND[it.kind]?.image; }
+    if (p.type === 'youtube') { it.ytId = p.id; it.thumb = `https://i.ytimg.com/vi/${p.id}/hqdefault.jpg`; it.ytUrl = it.url; }
+    if (p.type === 'drive') { it.driveId = p.id; it.thumb = driveThumb(p.id); it.media = mediaKind(); it.isImage = KIND[it.kind]?.image; }
     if (p.type === 'image') { it.isImage = true; it.thumb = it.url; }
     if (p.type === 'media') { it.media = /\.(mp3|m4a|ogg)/i.test(it.url) ? 'audio' : 'video'; it.directUrl = it.url; }
+    const alt = driveId(it.alt);
+    if (alt && !it.driveId) { it.driveId = alt; it.media ||= mediaKind(); it.thumb ||= driveThumb(alt); }
   }
+  it.hasDrive = !!(it.driveId && it.media);
   it.playable = !!(it.ytId || it.media);
   it._ok = true;
   return it;
 }
+
+/* ─── 테마 ─── 밤하늘 · 라벤더 · 하양, 고른 것은 이 브라우저에 기억 */
+const THEMES = [
+  { id: 'dark', name: '밤하늘' },
+  { id: 'lavender', name: '라벤더' },
+  { id: 'white', name: '하양' },
+];
+const Theme = {
+  get() { return store.get('theme', 'dark'); },
+  set(id) {
+    store.set('theme', id);
+    document.documentElement.dataset.theme = id;
+    $$('[data-theme-pick]').forEach(b => b.setAttribute('aria-pressed', b.dataset.themePick === id));
+    window.dispatchEvent(new Event('themechange'));
+  },
+  dots() {
+    const cur = this.get();
+    return `<span class="dots" role="group" aria-label="테마">${THEMES.map(t =>
+      `<button type="button" class="dot dot-${t.id}" data-theme-pick="${t.id}" aria-pressed="${t.id === cur}" aria-label="${t.name} 테마" title="${t.name}"></button>`).join('')}</span>`;
+  },
+};
+document.documentElement.dataset.theme = Theme.get();
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-theme-pick]');
+  if (b) Theme.set(b.dataset.themePick);
+});
 
 /* ─── 데이터 ─── */
 const Data = {
@@ -282,6 +316,15 @@ function starfield(canvas) {
   const ctx = canvas.getContext('2d');
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let stars = [], w, h, dpr;
+  // 별 색은 테마마다 다르다 (밤하늘: 흰 별, 하양: 연보라 별)
+  let rgb = '255,255,255', tint = '200,190,255';
+  const readColors = () => {
+    const cs = getComputedStyle(document.documentElement);
+    rgb = cs.getPropertyValue('--star').trim() || rgb;
+    tint = cs.getPropertyValue('--star2').trim() || tint;
+    if (still) draw(0);
+  };
+  addEventListener('themechange', readColors);
   const resize = () => {
     dpr = Math.min(2, devicePixelRatio || 1);
     w = canvas.width = innerWidth * dpr;
@@ -300,13 +343,14 @@ function starfield(canvas) {
     ctx.clearRect(0, 0, w, h);
     for (const s of stars) {
       const a = still ? s.a : s.a * (0.55 + 0.45 * Math.sin(t * s.s + s.p));
-      ctx.fillStyle = s.hue ? `hsla(${s.hue},90%,85%,${a})` : `rgba(255,255,255,${a})`;
+      ctx.fillStyle = `rgba(${s.hue ? tint : rgb},${a})`;
       ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
     }
     if (!still) requestAnimationFrame(draw);
   };
   addEventListener('resize', () => { resize(); if (still) draw(0); });
   resize();
+  readColors();
   requestAnimationFrame(draw);
 }
 

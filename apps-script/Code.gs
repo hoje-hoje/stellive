@@ -39,7 +39,7 @@ function setup() {
 
   if (!props.getProperty('SHEET_ID')) {
     const ss = SpreadsheetApp.create('스텔라이브 아카이브 데이터');
-    ss.getSheets()[0].setName('links').appendRow(['id', 'kind', 'title', 'url', 'members', 'group', 'byEmail', 'byName', 'at']);
+    ss.getSheets()[0].setName('links').appendRow(['id', 'kind', 'title', 'url', 'members', 'group', 'byEmail', 'byName', 'at', 'alt']);
     ss.insertSheet('favorites').appendRow(['email', 'ids', 'at']);
     DriveApp.getFileById(ss.getId()).moveTo(sysFolder_());
     props.setProperty('SHEET_ID', ss.getId());
@@ -88,6 +88,7 @@ const ACTIONS = {
     const file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     const meta = { title: (b.title || '').trim(), members: members, group: b.group || '', byEmail: u.email, byName: u.name };
+    if (/^https?:\/\//.test(String(b.url || ''))) meta.url = String(b.url).trim();
     file.setDescription(JSON.stringify(meta));
     clearCache_();
     return { item: fileItem_(file, b.kind, meta, site) };
@@ -102,9 +103,11 @@ const ACTIONS = {
     if (!members.length && !b.group) throw new Error('멤버를 하나 이상 골라야 한다');
     const id = 'l_' + Utilities.getUuid().slice(0, 12);
     const at = new Date().toISOString();
-    sheet_('links').appendRow([id, b.kind, (b.title || '').trim(), url, JSON.stringify(members), b.group || '', u.email, u.name, at]);
+    const alt = String(b.alt || '').trim(); // 같은 노래의 드라이브 파일 (유튜브가 막힌 곳에서 대신 튼다)
+    const row = [id, b.kind, (b.title || '').trim(), url, JSON.stringify(members), b.group || '', u.email, u.name, at, alt];
+    sheet_('links').appendRow(row);
     clearCache_();
-    return { item: linkItem_([id, b.kind, b.title, url, JSON.stringify(members), b.group || '', u.email, u.name, at]) };
+    return { item: linkItem_(row) };
   },
 
   remove(b, u) {
@@ -301,6 +304,7 @@ function fileItem_(file, kind, meta, site) {
     kind: kind,
     title: meta.title || name.replace(/\.[^.]+$/, ''),
     src: 'drive',
+    url: meta.url || '',
     mime: file.getMimeType(),
     members: meta.members || [],
     group: meta.group || '',
@@ -321,6 +325,7 @@ function linkItem_(r) {
     id: r[0], kind: r[1], title: String(r[2] || ''), src: 'link', url: r[3],
     members: members, group: r[5] || '', by: r[7] || '', byEmail: r[6] || '',
     at: r[8] instanceof Date ? r[8].toISOString() : String(r[8] || ''),
+    alt: r[9] || '',
   };
 }
 

@@ -71,10 +71,10 @@ function route() {
 addEventListener('hashchange', route);
 
 /* 이미지 칸: 주소/드라이브 id 를 직접 넣거나, 파일을 골라 드라이브에 올린다 */
-function imgField(label, value, key, wide) {
+function imgField(label, value, key, shape) {
   return `<label class="field"><span>${label} <em>주소나 드라이브 링크, 또는 파일 올리기</em></span>
     <div class="imgf">
-      <span class="prev ${wide ? 'wide' : ''}" style="background-image:url('${esc(imgUrl(value, 400))}')"></span>
+      <span class="prev ${shape === true ? 'wide' : shape || ''}" style="background-image:url('${esc(imgUrl(value, 400))}')"></span>
       <input type="text" data-k="${key}" value="${esc(value || '')}" placeholder="https://… 또는 드라이브 링크">
       <label class="btn sm">올리기<input type="file" accept="image/*" data-img="${key}" hidden></label>
     </div></label>`;
@@ -88,13 +88,13 @@ function bindInputs(target) {
     const path = el.dataset.k.split('.');
     let o = target();
     while (path.length > 1) { const k = path.shift(); o = o[k] ||= {}; }
-    o[path[0]] = el.value;
+    o[path[0]] = el.type === 'checkbox' ? el.checked : el.value;
     if (el.closest('.imgf')) el.closest('.imgf').querySelector('.prev').style.backgroundImage = `url('${imgUrl(el.value, 400)}')`;
     markDirty();
   };
   pane.onchange = async e => {
     const el = e.target;
-    if (el.dataset.repaint) return route();
+    if (el.dataset.repaint) { if (el.type === 'checkbox') pane.oninput(e); return route(); }
     if (!el.dataset.img) return;
     const f = el.files[0];
     if (!f) return;
@@ -116,11 +116,16 @@ function paneSite() {
   pane.innerHTML = `
     <div class="editor">
       <h2>첫화면 배너</h2>
-      <p class="muted sm">X 프로필 헤더처럼 맨 위에 크게 나와요. 비워두면 우주 그라데이션 + 로고가 나와요.</p>
+      <p class="muted sm">첫 화면 오른쪽과 홈 맨 위 배너에 같이 나와요. 비워두면 테마 색 하늘이 나와요.</p>
       ${imgField('배너 이미지 (가로로 긴 것, 3:1 정도)', draft.banner.image, 'banner.image', true)}
       <div class="row">
         <label class="field"><span>제목</span><input data-k="banner.title" value="${esc(draft.banner.title || '')}"></label>
         <label class="field"><span>한 줄 소개</span><input data-k="banner.subtitle" value="${esc(draft.banner.subtitle || '')}"></label>
+      </div>
+      <h2 style="margin-top:18px">링크 · 연락처</h2>
+      <div class="row">
+        <label class="field"><span>팬 카페 주소 <em>배너의 로고 동그라미를 누르면 여기로 가요</em></span><input type="url" data-k="fanCafe" value="${esc(draft.fanCafe || '')}" placeholder="https://cafe.naver.com/…"></label>
+        <label class="field"><span>삭제 요청 연락처 <em>About 페이지에 나와요</em></span><input type="email" data-k="contact" value="${esc(draft.contact || '')}"></label>
       </div>
     </div>`;
   bindInputs(() => draft);
@@ -170,7 +175,7 @@ function paneMembers() {
     <div class="two">
       <div class="mlist">
         ${ms.map(x => `<div class="mrow ${x.id === pickedMember ? 'on' : ''}" data-pick="${esc(x.id)}" style="--c:${esc(x.color)}">
-          ${avatarHtml(x, 'av')}<b>${esc(x.name)}</b><small>${esc(draft.groups.find(g => g.id === x.group)?.label || '')}</small></div>`).join('')}
+          ${avatarHtml(x, 'av')}<b>${esc(x.name)}</b><small>${x.graduated ? '졸업' : esc(draft.groups.find(g => g.id === x.group)?.label || '')}</small></div>`).join('')}
         <button class="btn sm" id="mAdd">＋ 멤버 추가</button>
       </div>
       ${m ? `<div class="editor">
@@ -179,14 +184,20 @@ function paneMembers() {
           <label class="field"><span>풀네임</span><input data-k="members.${i}.fullName" value="${esc(m.fullName || '')}"></label>
         </div>
         <div class="row">
+          <label class="field"><span>영문 이름 <em>프로필 큰 글씨 · 카드</em></span><input data-k="members.${i}.en" value="${esc(m.en || '')}" placeholder="Yuni"></label>
+          <label class="field"><span>영문 풀네임 <em>첫 단어가 프로필 왼쪽 세로 띠에</em></span><input data-k="members.${i}.enFull" value="${esc(m.enFull || '')}" placeholder="Ayatsuno Yuni"></label>
+          <label class="check"><input type="checkbox" data-k="members.${i}.graduated" data-repaint ${m.graduated ? 'checked' : ''}>졸업 멤버 (홈 맨 아래 GRADUATION 으로)</label>
+        </div>
+        <div class="row">
           <label class="field"><span>기수</span><select data-k="members.${i}.group" data-repaint>${draft.groups.map(g => `<option value="${esc(g.id)}" ${g.id === m.group ? 'selected' : ''}>${esc(g.label)} ${esc(g.name)}</option>`).join('')}</select></label>
           <label class="field" style="flex:0 0 auto"><span>대표 색</span><input type="color" data-k="members.${i}.color" value="${esc(m.color)}"></label>
           <label class="field"><span>생일 <em>MM-DD</em></span><input data-k="members.${i}.birthday" value="${esc(m.birthday || '')}" placeholder="03-14" pattern="\\d{2}-\\d{2}"></label>
           <label class="field"><span>데뷔일</span><input type="date" data-k="members.${i}.debut" value="${esc(m.debut || '')}"></label>
         </div>
         ${imgField('프로필 사진 (카드·동그라미)', m.avatar, `members.${i}.avatar`)}
-        ${imgField('헤더 이미지 (멤버 페이지 위쪽, 3:1)', m.banner, `members.${i}.banner`, true)}
-        <label class="field"><span>소개</span><textarea data-k="members.${i}.bio">${esc(m.bio || '')}</textarea></label>
+        ${imgField('전신 일러스트 (프로필 왼쪽 큰 그림 · 배경 투명 PNG 추천)', m.art, `members.${i}.art`, 'tall')}
+        <label class="field"><span>소개 <em>Summary — 두세 줄이 가장 예뻐요</em></span><textarea data-k="members.${i}.bio">${esc(m.bio || '')}</textarea></label>
+        <label class="field"><span>대표 한마디 <em>프로필에 큰 기울임 글씨로</em></span><input data-k="members.${i}.quote" value="${esc(m.quote || '')}"></label>
         <div class="row">
           <label class="field"><span>치지직</span><input type="url" data-k="members.${i}.links.chzzk" value="${esc(m.links?.chzzk || '')}" placeholder="https://chzzk.naver.com/…"></label>
           <label class="field"><span>X</span><input type="url" data-k="members.${i}.links.x" value="${esc(m.links?.x || '')}" placeholder="https://x.com/…"></label>
@@ -196,7 +207,7 @@ function paneMembers() {
           <button class="btn sm" data-mmove="-1">↑ 위로</button>
           <button class="btn sm" data-mmove="1">↓ 아래로</button>
           <span class="grow"></span>
-          <button class="btn sm" data-mdel style="color:var(--bad)">${ICON.trash} 멤버 지우기</button>
+          <button class="btn sm danger" data-mdel>${ICON.trash} 멤버 지우기</button>
         </div>
         <p class="muted sm">id: ${esc(m.id)} · 저장하면 드라이브에 이 멤버 폴더(커버곡·오리곡…)가 자동으로 생겨요. 이름을 바꿔도 폴더는 따라와요.</p>
       </div>` : ''}
@@ -219,7 +230,7 @@ function paneMembers() {
     if (!name) return;
     const id = prompt('영문 id (주소에 쓰여요, 나중에 못 바꿔요)', slug(name));
     if (!id || ms.some(x => x.id === id)) return toast('id 가 비었거나 이미 있어요', true);
-    ms.push({ id: slug(id), name, fullName: '', group: draft.groups[draft.groups.length - 1]?.id || '', color: '#9fb4ff', avatar: '', banner: '', bio: '', birthday: '', debut: '', links: { chzzk: '', x: '', youtube: '' } });
+    ms.push({ id: slug(id), name, fullName: '', en: '', enFull: '', graduated: false, art: '', quote: '', group: draft.groups[draft.groups.length - 1]?.id || '', color: '#9fb4ff', avatar: '', banner: '', bio: '', birthday: '', debut: '', links: { chzzk: '', x: '', youtube: '' } });
     pickedMember = slug(id);
     markDirty(); route();
   };
@@ -235,7 +246,7 @@ function paneEvents() {
       <p class="muted sm">생일·데뷔 기념일은 멤버 정보에서 자동으로 들어가요. 여기는 그 외 이벤트.</p>
       <div><button class="btn sm" id="eAdd">＋ 일정 추가</button></div>
       ${draft.events.map((ev, i) => `
-        <div class="row" style="padding:12px;border-radius:12px;background:var(--raise)">
+        <div class="row" style="padding:14px;background:var(--bg);border:1px solid var(--line)">
           <label class="field" style="flex:0 0 150px"><span>시작</span><input type="date" data-k="events.${i}.date" value="${esc(ev.date)}"></label>
           <label class="field" style="flex:0 0 150px"><span>끝 <em>하루면 비움</em></span><input type="date" data-k="events.${i}.end" value="${esc(ev.end || '')}"></label>
           <label class="field" style="flex:0 0 110px"><span>종류</span><select data-k="events.${i}.type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${ev.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
@@ -244,7 +255,7 @@ function paneEvents() {
           <div class="field" style="flex:1 1 100%"><span>관련 멤버</span><div class="chips">
             ${draft.members.map(m => `<button type="button" class="chip ${ev.members?.includes(m.id) ? 'on' : ''}" data-em="${i}:${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av xs')}${esc(m.name)}</button>`).join('')}
           </div></div>
-          <button class="btn sm" data-edel="${i}" style="color:var(--bad)">${ICON.trash} 지우기</button>
+          <button class="btn sm danger" data-edel="${i}">${ICON.trash} 지우기</button>
         </div>`).join('')}
     </div>`;
   bindInputs(() => draft);
@@ -276,7 +287,7 @@ function paneContent() {
     <div class="editor">
       <div class="row">
         <h2 style="margin-right:auto">올라온 것 <small class="muted">${Data.items.length}개</small></h2>
-        <input id="cq" placeholder="제목 · 올린 사람 · 멤버 id" value="${esc(contentFilter)}" style="padding:8px 12px;border-radius:10px;background:var(--raise);border:1px solid var(--line);min-width:240px">
+        <input id="cq" placeholder="제목 · 올린 사람 · 멤버 id" value="${esc(contentFilter)}" style="padding:10px 12px;background:var(--bg);border:1px solid var(--line2);min-width:240px">
         ${LIVE ? '<button class="btn sm" id="refresh">드라이브 다시 읽기</button>' : ''}
       </div>
       <p class="muted sm">드라이브 폴더에 직접 넣은 파일은 10분 안에 저절로 나타나요. 바로 보고 싶으면 "드라이브 다시 읽기".</p>
@@ -342,6 +353,7 @@ function downloadJson() {
 
 /* ─── 시작 ─── */
 starfield($('#sky'));
+$('#admDots').innerHTML = Theme.dots();
 Data.load().then(() => {
   Auth.on(u => gate(u));
   Auth.init();
