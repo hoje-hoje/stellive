@@ -163,6 +163,7 @@ const TEXT_SECTIONS = [
     ['footer.official', '셋째 묶음', 'OFFICIAL'],
     ['footer.officialSite', '공식 사이트 링크', '스텔라이브 공식 사이트'],
     ['footer.admin', '관리자 링크', '관리자'],
+    ['footer.privacy', '개인정보처리방침 링크', '개인정보처리방침'],
     ['footer.loginOn', '로그인했을 때', '{name} · 별표는 계정에 저장된다'],
     ['footer.loginOff', '로그인 안 했을 때', '로그인하지 않으면 별표는 이 기기에만 저장된다'],
     ['footer.top', '맨 위로 버튼', 'TOP'],
