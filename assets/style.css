@@ -119,18 +119,16 @@ input, select, textarea { font: inherit; color: inherit; }
 .in-dots { position: absolute; right: 40px; top: 28px; z-index: 2; }
 .in-type {
   --t: min(10vw, 19vh);
-  position: absolute; left: calc(clamp(180px, 17vw, 320px) - 72px); top: 50%; transform: translateY(-56%);
+  position: absolute; left: calc(clamp(180px, 17vw, 320px) + 56px); top: 50%; transform: translateY(-56%);
   display: flex; flex-direction: column; z-index: 1;
 }
-[data-theme="lavender"] .in-type, [data-theme="white"] .in-type,
-[data-theme="lavender"] .in-enter, [data-theme="white"] .in-enter { left: calc(clamp(180px, 17vw, 320px) + 56px); }
 .in-type .sc { font-size: max(14px, min(1.4vw, 2.6vh)); }
 .in-title { font-family: var(--bodoni); font-weight: 700; font-variation-settings: 'opsz' 20; font-size: var(--t); line-height: .92; letter-spacing: -.005em; margin-top: 1.6vh; }
 .in-sub { font-family: var(--bodoni); font-style: italic; font-weight: 500; font-variation-settings: 'opsz' 20; font-size: calc(var(--t) * .72); line-height: 1; color: var(--accent); margin-left: calc(var(--t) * .64); }
 .in-rule { display: block; width: calc(var(--t) * 4.4); max-width: 70vw; height: 2px; background: var(--fg); opacity: .7; margin-top: 2.6vh; }
 .in-ko { font-family: var(--batang); font-size: max(16px, min(1.75vw, 3.1vh)); margin-top: 2.2vh; letter-spacing: .04em; }
 .in-enter {
-  position: absolute; left: calc(clamp(180px, 17vw, 320px) - 72px); bottom: 5vh; z-index: 1;
+  position: absolute; left: calc(clamp(180px, 17vw, 320px) + 56px); bottom: 5vh; z-index: 1;
   display: inline-flex; align-items: center; gap: 14px; min-height: 48px;
   font-family: var(--bodoni); font-size: 18px; letter-spacing: .3em; border-bottom: 2px solid currentColor;
 }
