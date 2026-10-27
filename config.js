@@ -11,12 +11,12 @@ window.CONFIG = {
 
   /* ② 구글 로그인용 OAuth 클라이언트 ID
         예: "1234567890-abcdefg.apps.googleusercontent.com" */
-  googleClientId: "",
+  googleClientId: "305499200154-8mh7k0jr3fhlf773nsml7gu8q9c7i9so.apps.googleusercontent.com",
 
   /* ③ 구글 API 키 (Drive API 사용 설정)
         드라이브 mp4 를 <video> 로 직접 틀어서 "끝나면 다음 곡" 이 되게 하는 데 쓴다.
         비워두면 드라이브 영상은 구글 미리보기 창으로만 나오고 자동으로 안 넘어간다. */
-  driveApiKey: "",
+  driveApiKey: "AIzaSyBglIjWfUK4oSsxkA4NSH9nSq2hSMK8g24",
 
   /* 한 번에 올릴 수 있는 파일 크기 (MB) — Apps Script 한계 때문에 35 정도가 최대 */
   maxUploadMB: 35,

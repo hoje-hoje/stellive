@@ -4,7 +4,7 @@
    ══════════════════════════════════════════════════════════ */
 
 /* ① config.js 의 googleClientId 와 같은 값 */
-const CLIENT_ID = '';
+const CLIENT_ID = '305499200154-8mh7k0jr3fhlf773nsml7gu8q9c7i9so.apps.googleusercontent.com';
 
 /* ② 관리자 구글 계정 — 여기 있는 사람만 관리자 페이지에서 저장·삭제할 수 있다 */
 const ADMIN_EMAILS = [
