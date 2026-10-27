@@ -96,7 +96,7 @@ function bindInputs(target) {
   };
   pane.onchange = async e => {
     const el = e.target;
-    if (el.dataset.repaint) { if (el.type === 'checkbox') pane.oninput(e); return route(); }
+    if ('repaint' in el.dataset) { if (el.type === 'checkbox') pane.oninput(e); return route(); }
     if (!el.dataset.img) return;
     const f = el.files[0];
     if (!f) return;
@@ -142,7 +142,7 @@ function paneGroups() {
           <label class="field" style="flex:0 0 110px"><span>id</span><input value="${esc(g.id)}" disabled></label>
           <label class="field"><span>기수</span><input data-k="groups.${i}.label" value="${esc(g.label)}"></label>
           <label class="field"><span>이름</span><input data-k="groups.${i}.name" value="${esc(g.name)}"></label>
-          <label class="field" style="flex:0 0 auto"><span>색</span><input type="color" data-k="groups.${i}.color" value="${esc(g.color)}"></label>
+          <label class="field" style="flex:0 0 80px"><span>색</span><input type="color" data-k="groups.${i}.color" value="${esc(g.color)}"></label>
           <button class="icon-btn" data-gup="${i}" title="위로">↑</button>
           <button class="icon-btn" data-gdel="${i}" title="지우기">${ICON.trash}</button>
         </div>`).join('')}
@@ -190,7 +190,7 @@ function paneMembers() {
         </div>
         <div class="row">
           <label class="field"><span>기수</span><select data-k="members.${i}.group" data-repaint>${draft.groups.map(g => `<option value="${esc(g.id)}" ${g.id === m.group ? 'selected' : ''}>${esc(g.label)} ${esc(g.name)}</option>`).join('')}</select></label>
-          <label class="field" style="flex:0 0 auto"><span>대표 색</span><input type="color" data-k="members.${i}.color" value="${esc(m.color)}"></label>
+          <label class="field" style="flex:0 0 90px"><span>대표 색</span><input type="color" data-k="members.${i}.color" value="${esc(m.color)}"></label>
           <label class="field"><span>생일 <em>MM-DD</em></span><input data-k="members.${i}.birthday" value="${esc(m.birthday || '')}" placeholder="03-14" pattern="\\d{2}-\\d{2}"></label>
           <label class="field"><span>데뷔일</span><input type="date" data-k="members.${i}.debut" value="${esc(m.debut || '')}"></label>
         </div>
@@ -304,6 +304,7 @@ function paneContent() {
           <td><button class="icon-btn sm" data-cdel="${esc(it.id)}" title="지우기">${ICON.trash}</button></td>
         </tr>`).join('')}
       </table></div>
+      ${items.length ? '' : `<p class="muted" style="text-align:center;padding:40px 0">${Data.items.length ? '찾는 게 없다' : '아직 올라온 게 없다. 사이트에서 올리면 여기에 모인다.'}</p>`}
     </div>`;
   const cq = $('#cq');
   cq.oninput = () => { contentFilter = cq.value; paneContent(); const n = $('#cq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
