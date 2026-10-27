@@ -8,7 +8,8 @@ const CLIENT_ID = '';
 
 /* ② 관리자 구글 계정 — 여기 있는 사람만 관리자 페이지에서 저장·삭제할 수 있다 */
 const ADMIN_EMAILS = [
-  // 'me@gmail.com',
+  '33_37@kbs.hs.kr',
+  // 'friend@gmail.com',   ← 관리자를 늘리려면 이렇게 한 줄씩
 ];
 
 /* ③ 사이트 주소 — 처음 setup 할 때 site.json 을 여기서 받아온다 */
@@ -51,8 +52,15 @@ function setup() {
   }
 
   if (!props.getProperty('SITE_FILE_ID')) {
+    // 사이트(GitHub Pages)가 아직 안 켜져 있으면 리포지토리 원본에서 받는다
     let json = '{}';
-    try { json = UrlFetchApp.fetch(SITE_URL + 'data/site.json').getContentText(); } catch (e) {}
+    for (const url of [SITE_URL + 'data/site.json', 'https://raw.githubusercontent.com/hoje-hoje/stellive/main/data/site.json']) {
+      try {
+        const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+        if (res.getResponseCode() === 200 && res.getContentText().trim().startsWith('{')) { json = res.getContentText(); break; }
+      } catch (e) {}
+    }
+    if (json === '{}') throw new Error('site.json 을 받아오지 못했다. SITE_URL 을 확인하자');
     const f = sysFolder_().createFile('site.json', json, 'application/json');
     props.setProperty('SITE_FILE_ID', f.getId());
   }
