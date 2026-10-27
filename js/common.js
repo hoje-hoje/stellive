@@ -370,7 +370,7 @@ function starfield(canvas) {
 /* 멤버 동그라미/카드에 쓰는 그림 (이미지가 없으면 색 + 이름 첫 글자) */
 function avatarHtml(m, cls = 'av') {
   if (!m) return '';
-  const img = imgUrl(m.avatar, 400);
+  const img = imgUrl(typeof firstSrc === 'function' ? firstSrc(m.avatar) : m.avatar, 400);
   return img
     ? `<span class="${cls}" style="--c:${esc(m.color)}"><img src="${esc(img)}" alt="" loading="lazy"></span>`
     : `<span class="${cls} ph" style="--c:${esc(m.color)}">${esc(m.name.slice(0, 1))}</span>`;

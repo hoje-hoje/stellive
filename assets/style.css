@@ -306,7 +306,6 @@ input, select, textarea { font: inherit; color: inherit; }
 .mcard { width: 190px; display: flex; flex-direction: column; gap: 10px; }
 .mc-img { position: relative; height: 260px; background: var(--c); overflow: hidden; transition: transform .35s cubic-bezier(.2,.8,.3,1); }
 .mcard:hover .mc-img { transform: translateY(-6px); }
-.mc-img img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .mc-en { position: absolute; right: 8px; top: 12px; writing-mode: vertical-rl; font-family: var(--bodoni); font-size: 13px; letter-spacing: .32em; color: rgba(7,8,32,.62); }
 .mc-img.has-img .mc-en { color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
 .mc-ini { position: absolute; left: 14px; bottom: 6px; font-family: var(--batang); font-size: 64px; font-weight: 700; color: rgba(7,8,32,.18); line-height: 1; }
@@ -349,7 +348,6 @@ input, select, textarea { font: inherit; color: inherit; }
 .pf-strip span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--bodoni); font-weight: 700; font-variation-settings: 'opsz' 20; font-size: 88px; letter-spacing: .06em; line-height: 1; color: #121238; white-space: nowrap; }
 .pf-art { flex: 1; position: relative; background: var(--sky); overflow: hidden; }
 [data-theme="dark"] .pf-art { background: radial-gradient(70% 60% at 60% 30%, color-mix(in srgb, var(--c) 35%, transparent), transparent 70%), #1b1a4e; }
-.pf-art img { position: absolute; left: -40px; right: 0; bottom: 0; width: calc(100% + 40px); height: 100%; object-fit: contain; object-position: bottom center; }
 .pf-art .ph { position: absolute; inset: 40px 24px 0 -40px; display: grid; place-items: center; font-family: var(--batang); font-size: 180px; font-weight: 700; color: rgba(255,255,255,.18); }
 .pf-art .ci { position: absolute; left: 24px; bottom: 26px; font-family: var(--bodoni); font-size: 13px; letter-spacing: .4em; line-height: 1.6; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.35); }
 .pf-right { flex: 999 1 520px; min-width: 0; padding: 48px 48px 40px; display: flex; flex-direction: column; gap: 24px; }
@@ -683,3 +681,49 @@ body.editing a { -webkit-user-drag: none; }
 #imgpop > b { font-family: var(--batang); font-size: 18px; }
 #imgpop .ip-prev { height: 120px; background: var(--tile) center / contain no-repeat; border: 1px solid var(--line); }
 #imgpop .ip-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* ══ 그림 겹 ══ 영역(틀) 안에 여러 장을 겹친다. 첫 장은 채우기, 나머지는 자유 위치 */
+.lays { position: absolute; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+.lays.ov { overflow: visible; }
+.lays .lay { position: absolute; display: block; max-width: none; user-select: none; }
+.lays .lay.fill { inset: 0; width: 100%; height: 100%; }
+.lays .lay.free { height: auto; }
+.banner > .bn-in, .foot > .foot-in, .mc-img > span, .pf-art > span:not(.lays), .in-sky::after { z-index: 1; }
+.foot { position: relative; }
+.foot > .scrim, #drawer > .scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--wall) 80%, transparent); z-index: 0; pointer-events: none; }
+#drawer > :not(.lays):not(.scrim) { position: relative; z-index: 1; }
+.pf-art { isolation: isolate; }
+.pf-art .lays .lay.fill { left: -40px; width: calc(100% + 40px); }
+.mc-img:has(.lays.ov), .pf-art:has(.lays.ov), .banner:has(.lays.ov), .pf-left:has(.lays.ov), .pf-card:has(.lays.ov) { overflow: visible; }
+
+/* 그림 겹 편집 판 */
+#laypanel {
+  position: fixed; right: 16px; top: 76px; z-index: 99; width: 340px; max-height: calc(100vh - 170px - var(--player)); overflow-y: auto;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line2); box-shadow: 0 20px 60px rgba(0,0,0,.45);
+  padding: 16px; display: flex; flex-direction: column; gap: 12px; font-family: var(--sans); font-size: 14px;
+}
+.lp-h { display: flex; align-items: center; justify-content: space-between; }
+.lp-h b { font-family: var(--batang); font-size: 18px; }
+.lp-sw { display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
+.lp-sw input { width: 18px; height: 18px; accent-color: var(--accent); }
+.lp-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.lp-list li { display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid var(--line); cursor: pointer; }
+.lp-list li.on { border-color: var(--accent); background: var(--today); }
+.lp-list .lp-th { width: 44px; height: 32px; flex: none; background: var(--tile) center / cover; }
+.lp-list .lp-n { flex: 1; font-size: 13px; }
+.lp-empty { color: var(--dim); font-size: 13px; padding: 10px !important; cursor: default !important; }
+.lp-sec { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.lp-k { font-family: var(--batang); }
+.lp-hint { font-size: 13px; color: var(--dim); }
+.lp-rg { display: grid; grid-template-columns: 40px 1fr 54px; align-items: center; gap: 8px; font-size: 13px; }
+.lp-rg input { accent-color: var(--accent); }
+.lp-rg em { font-style: normal; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+.lp-seg { display: flex; border: 1px solid var(--line2); }
+.lp-seg button { flex: 1; min-height: 36px; font-size: 13px; color: var(--dim); }
+.lp-seg button[aria-pressed="true"] { background: var(--btn); color: var(--btn-fg); }
+.lp-row { display: flex; gap: 6px; flex-wrap: wrap; }
+body.lay-editing .lay-target { outline: 3px solid #f0b446 !important; outline-offset: -3px; cursor: grab; }
+body.lay-editing .lay-target:active { cursor: grabbing; }
+body.lay-editing .lay-target .lays { pointer-events: auto; }
+body.lay-editing .lay-target .lay.free { pointer-events: auto; }
+body.lay-editing .lay-target .lay.lay-sel.free { outline: 2px dashed #f0b446; outline-offset: 2px; }

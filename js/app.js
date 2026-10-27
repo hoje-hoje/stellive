@@ -96,11 +96,12 @@ function itemsBlock(kind, items, label, ctx = {}) {
 /* ─── 홈 ─── */
 function renderHome() {
   const s = Data.site, b = s.banner || {};
-  const bimg = imgUrl(b.image, 1920);
+  const bimg = layersOf(b.image).layers.length;
   const songs = Data.items.filter(i => KIND[i.kind]?.music).length;
   const others = Data.items.length - songs;
   view.innerHTML = `
-    <section class="banner ${bimg ? 'has-img' : ''}" data-ei="banner.image" ${bimg ? `style="background-image:url('${esc(bimg)}')"` : ''}>
+    <section class="banner ${bimg ? 'has-img' : ''}" data-ei="banner.image">
+      ${layersHtml(b.image)}
       <div class="bn-in">
         <div class="bn-t">
           <span class="sc">${esc(t('home.kicker'))}</span>
@@ -135,10 +136,10 @@ function renderHome() {
 }
 
 function memberCard(m, grad) {
-  const img = imgUrl(m.avatar, 500);
+  const img = layersOf(m.avatar).layers.length;
   return `<div class="mcard ${grad ? 'grad' : ''}" style="--c:${esc(m.color)}">
     <a class="mc-img ${img ? 'has-img' : ''}" data-ei="members.${Data.site.members.indexOf(m)}.avatar" href="#/m/${esc(m.id)}" aria-label="${esc(m.name)} 프로필">
-      ${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : `<span class="mc-ini">${esc(m.name.slice(0, 1))}</span>`}
+      ${img ? layersHtml(m.avatar, { oy: 0 }) : `<span class="mc-ini">${esc(m.name.slice(0, 1))}</span>`}
       <span class="mc-en">${esc((m.en || '').toUpperCase())}</span>
     </a>
     <a class="mc-cap" href="#/m/${esc(m.id)}"><b>${ef(`members.${Data.site.members.indexOf(m)}.name`, m.name)}</b><i>${ef(`members.${Data.site.members.indexOf(m)}.en`, m.en)}</i></a>
@@ -147,8 +148,9 @@ function memberCard(m, grad) {
 }
 
 function footerHtml() {
-  const fbg = siteImg('footer');
-  return `<footer class="foot" data-ei="images.footer" ${fbg ? `style="background-image:linear-gradient(color-mix(in srgb, var(--wall) 82%, transparent), color-mix(in srgb, var(--wall) 82%, transparent)), url('${esc(fbg)}');background-size:cover;background-position:center"` : ''}>
+  const fl = layersHtml(Data.site.images?.footer);
+  return `<footer class="foot" data-ei="images.footer">
+    ${fl ? fl + '<div class="scrim" aria-hidden="true"></div>' : ''}
     <div class="foot-in">
       <div class="foot-top">
         <div class="foot-brand">
@@ -245,7 +247,8 @@ function renderMember(id, tab) {
   const counts = Object.fromEntries(KINDS.map(k => [k.id, Data.forMember(id, k.id).length]));
   tab = PROFILE_TABS.includes(tab) ? tab : 'cover';
   const items = Data.forMember(id, tab);
-  const art = imgUrl(m.art || m.avatar, 1200);
+  const artV = layersOf(m.art).layers.length ? m.art : m.avatar;
+  const art = layersOf(artV).layers.length;
   const mi = Data.site.members.indexOf(m), mp = `members.${mi}`;
   const family = ((m.enFull || m.en || m.name).split(' ')[0] || '').toUpperCase();
   const bd = m.birthday ? m.birthday.slice(-5).split('-').map(Number) : null;
@@ -262,8 +265,8 @@ function renderMember(id, tab) {
     <article class="pf-card" style="--c:${esc(m.color)}">
       <div class="pf-left">
         <div class="pf-strip" aria-hidden="true"><span>${esc(family)}</span></div>
-        <div class="pf-art" data-ei="${mp}.art" ${m.artBg || siteImg('profileBg') ? `style="background:url('${esc(imgUrl(m.artBg, 1600) || siteImg('profileBg'))}') center / cover"` : ''}>
-          ${art ? `<img src="${esc(art)}" alt="${esc(m.name)}">` : `<span class="ph" aria-hidden="true">${esc(m.name.slice(0, 1))}</span>`}
+        <div class="pf-art" data-ei="${mp}.art" ${firstSrc(m.artBg) || siteImg('profileBg') ? `style="background:url('${esc(imgUrl(firstSrc(m.artBg), 1600) || siteImg('profileBg'))}') center / cover"` : ''}>
+          ${art ? layersHtml(artV, { fit: 'contain', oy: 100 }) : `<span class="ph" aria-hidden="true">${esc(m.name.slice(0, 1))}</span>`}
           <span class="ci" aria-hidden="true">${th('profile.ci')}</span>
         </div>
       </div>
@@ -501,9 +504,8 @@ function renderDrawer() {
       <div class="row">${Theme.dots()}<span class="grow"></span><button type="button" class="btn sm line" data-intro>${esc(t('nav.intro'))}</button></div>
       <div class="row"><button type="button" class="btn sm solid" data-upload="{}">${esc(t('nav.upload'))}</button><div id="login"></div></div>
     </div>`;
-  const dbg = siteImg('drawer');
-  $('#drawer').style.backgroundImage = dbg ? `linear-gradient(color-mix(in srgb, var(--wall) 80%, transparent), color-mix(in srgb, var(--wall) 80%, transparent)), url("${dbg}")` : '';
-  $('#drawer').style.backgroundSize = dbg ? 'cover' : '';
+  const dl = layersHtml(Data.site.images?.drawer);
+  if (dl) $('#drawer').insertAdjacentHTML('afterbegin', dl + '<div class="scrim" aria-hidden="true"></div>');
   $('#tbLinks').innerHTML = NAV.map(([href, , en]) => `<a href="${href}" data-href="${href}">${esc(t(en))}</a>`).join('');
   paintLogin(Auth.user);
   markNav();
@@ -556,13 +558,14 @@ const Intro = {
   shouldShow() { return store.get('introSkip') !== this.today(); },
   isOpen() { return !$('#intro').hidden && !$('#intro').classList.contains('leaving'); },
   show() {
-    const img = siteImg('intro', 1920);
+    const introV = layersOf(Data.site?.images?.intro).layers.length ? Data.site.images.intro : Data.site?.banner?.image;
+    const img = layersOf(introV).layers.length;
     const crest = Data.site?.images?.crest ? siteImg('crest', 800) : '';
     $('#introCrestImg').hidden = !crest;
     $('#introCrestSvg').style.display = crest ? 'none' : '';
     if (crest) $('#introCrestImg').src = crest;
     const sky = $('#introSky');
-    sky.style.backgroundImage = img ? `url("${img}")` : '';
+    sky.innerHTML = layersHtml(introV);
     sky.classList.toggle('has-img', !!img);
     fillTexts($('#intro'));
     $('#introDots').innerHTML = Theme.dots();

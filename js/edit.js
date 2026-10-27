@@ -131,7 +131,7 @@
     return path;
   }
   function openImg(path, anchor) {
-    const cur = getPath(Data.site, path) || '';
+    const cur = firstSrc(getPath(Data.site, path)) || '';
     const r = anchor.getBoundingClientRect();
     pop.innerHTML = `
       <b>${esc(labelFor(path))}</b>
@@ -170,16 +170,232 @@
     };
   }
 
+
+  /* ── 그림 겹 편집기 ──
+     영역을 누르면 오른쪽에 판이 뜬다. 영역 안에서 끌면 고른 그림이 움직인다. */
+  const SINGLE = new Set(['images.logo', 'images.cafe', 'images.crest']);
+  const DEFS = { art: { fit: 'contain', oy: 100 }, avatar: { oy: 0 } };
+  const panel = document.createElement('aside');
+  panel.id = 'laypanel';
+  panel.hidden = true;
+  document.body.append(panel);
+
+  const Lay = {
+    path: null, sel: 0,
+    def() { const k = this.path.split('.').pop(); return DEFS[k] || {}; },
+    data() {
+      // 주소 하나로 저장돼 있던 것도 겹 구조로 바꿔서 다룬다
+      const cur = getPath(Data.site, this.path);
+      const v = layersOf(cur, this.def());
+      return v;
+    },
+    save(v) {
+      setPath(Data.site, this.path, v.layers.length ? { layers: v.layers, overflow: v.overflow } : '');
+      touch();
+    },
+    region() {
+      return [...document.querySelectorAll(`[data-ei="${CSS.escape(this.path)}"]`)].find(el => el.offsetParent || el.id === 'drawer') || null;
+    },
+    open(path) {
+      this.path = path;
+      this.sel = 0;
+      // 첫 화면 오른쪽 그림이 비어 있으면 배너를 쓰고 있으므로, 고치기 시작할 때 복사해 둔다
+      if (path === 'images.intro' && !layersOf(getPath(Data.site, path)).layers.length && Data.site.banner?.image) {
+        setPath(Data.site, path, JSON.parse(JSON.stringify(layersOf(Data.site.banner.image))));
+      }
+      document.body.classList.add('lay-editing');
+      if (path === 'images.drawer') Menu.openDrawer(false);
+      this.paint();
+    },
+    close() {
+      this.path = null;
+      document.body.classList.remove('lay-editing');
+      $$('.lay-target').forEach(el => el.classList.remove('lay-target'));
+      panel.hidden = true;
+    },
+    rerender() {
+      refresh();
+      if (this.path === 'images.drawer') Menu.openDrawer(false);
+      this.mark();
+    },
+    mark() {
+      $$('.lay-target').forEach(el => el.classList.remove('lay-target'));
+      const r = this.region();
+      if (!r) return;
+      r.classList.add('lay-target');
+      $$('.lays .lay', r).forEach((img, i) => img.classList.toggle('lay-sel', i === this.sel));
+    },
+    paint() {
+      const v = this.data();
+      const L = v.layers[this.sel];
+      panel.hidden = false;
+      panel.innerHTML = `
+        <div class="lp-h"><b>${esc(labelFor(this.path))}</b><button type="button" class="icon-btn sm" data-lp="close" aria-label="닫기">${ICON.close}</button></div>
+        <label class="lp-sw"><input type="checkbox" data-lp="overflow" ${v.overflow ? 'checked' : ''}> 영역 밖으로 나가도 보이기</label>
+        <ol class="lp-list">${v.layers.map((l, i) => `
+          <li class="${i === this.sel ? 'on' : ''}" data-lp-sel="${i}">
+            <span class="lp-th" style="background-image:url('${esc(imgUrl(l.src, 200))}')"></span>
+            <span class="lp-n">${i + 1}. ${l.fit === 'free' ? '자유 그림' : '채우는 그림'}</span>
+            <button type="button" class="icon-btn sm" data-lp="up" data-i="${i}" aria-label="뒤로 보내기" title="뒤로">↑</button>
+            <button type="button" class="icon-btn sm" data-lp="down" data-i="${i}" aria-label="앞으로 가져오기" title="앞으로">↓</button>
+            <button type="button" class="icon-btn sm" data-lp="del" data-i="${i}" aria-label="지우기">${ICON.trash}</button>
+          </li>`).join('') || '<li class="lp-empty">아직 그림이 없다. 아래에서 넣자</li>'}</ol>
+        ${L ? `
+          <div class="lp-sec">
+            <p class="lp-hint">영역 안에서 <b>끌면</b> ${L.fit === 'free' ? '그림이 움직인다' : '보이는 부분이 움직인다'}.</p>
+            ${L.fit === 'free' ? `
+              <label class="lp-rg"><span>크기</span><input type="range" min="3" max="200" step="1" value="${L.w ?? 40}" data-lp="w"><em>${Math.round(L.w ?? 40)}%</em></label>
+              <label class="lp-rg"><span>회전</span><input type="range" min="-180" max="180" step="1" value="${L.r ?? 0}" data-lp="r"><em>${Math.round(L.r ?? 0)}°</em></label>
+            ` : `
+              <div class="lp-seg"><button type="button" data-lp="fit" data-v="cover" aria-pressed="${L.fit !== 'contain'}">꽉 채우기</button><button type="button" data-lp="fit" data-v="contain" aria-pressed="${L.fit === 'contain'}">전부 보이기</button></div>
+              <label class="lp-rg"><span>확대</span><input type="range" min="1" max="4" step="0.01" value="${L.zoom ?? 1}" data-lp="zoom"><em>${(+(L.zoom ?? 1)).toFixed(2)}×</em></label>
+            `}
+            <div class="lp-row">
+              <button type="button" class="btn sm" data-lp="center">위치 처음으로</button>
+              <button type="button" class="btn sm" data-lp="mode">${L.fit === 'free' ? '채우는 그림으로' : '자유 그림으로'}</button>
+            </div>
+            <label class="field"><span>이 그림 주소</span><input type="url" value="${esc(L.src)}" data-lp="src"></label>
+          </div>` : ''}
+        <div class="lp-sec">
+          <b class="lp-k">그림 넣기</b>
+          <label class="field"><span>주소 또는 드라이브 링크</span><input type="url" id="lpAdd" placeholder="https://…"></label>
+          <div class="lp-row">
+            <button type="button" class="btn sm solid" data-lp="add">${v.layers.length ? '위에 겹쳐 넣기' : '넣기'}</button>
+            <label class="btn sm">파일 올리기<input type="file" accept="image/*" data-lp="file" hidden></label>
+          </div>
+        </div>
+        <button type="button" class="btn sm" data-lp="close" style="align-self:flex-end">다 했다</button>`;
+      this.mark();
+    },
+    update(fn, repaint = true) {
+      const v = this.data();
+      fn(v, v.layers[this.sel]);
+      this.save(v);
+      this.rerender();
+      if (repaint) this.paint();
+    },
+    add(src) {
+      if (!src) return;
+      this.update(v => {
+        v.layers.push(v.layers.length ? { src, fit: 'free', x: 50, y: 50, w: 40, r: 0 } : { src, fit: this.def().fit || 'cover', ox: 50, oy: this.def().oy ?? 50, zoom: 1 });
+        this.sel = v.layers.length - 1;
+      });
+    },
+  };
+
+  panel.addEventListener('click', e => {
+    const b = e.target.closest('[data-lp], [data-lp-sel]');
+    if (!b) return;
+    if (b.dataset.lpSel != null && !e.target.closest('button')) { Lay.sel = +b.dataset.lpSel; return Lay.paint(); }
+    const a = b.dataset.lp, i = +b.dataset.i;
+    if (a === 'close') return Lay.close();
+    if (a === 'del' && confirm('이 그림을 지울까?')) Lay.update(v => { v.layers.splice(i, 1); Lay.sel = Math.max(0, Math.min(Lay.sel, v.layers.length - 1)); });
+    if (a === 'up' && i > 0) Lay.update(v => { [v.layers[i - 1], v.layers[i]] = [v.layers[i], v.layers[i - 1]]; Lay.sel = i - 1; });
+    if (a === 'down') Lay.update(v => { if (i < v.layers.length - 1) { [v.layers[i + 1], v.layers[i]] = [v.layers[i], v.layers[i + 1]]; Lay.sel = i + 1; } });
+    if (a === 'fit') Lay.update((v, L) => { L.fit = b.dataset.v; });
+    if (a === 'center') Lay.update((v, L) => { if (L.fit === 'free') Object.assign(L, { x: 50, y: 50, r: 0 }); else Object.assign(L, { ox: 50, oy: Lay.def().oy ?? 50, zoom: 1 }); });
+    if (a === 'mode') Lay.update((v, L) => {
+      if (L.fit === 'free') { Object.assign(L, { fit: 'cover', ox: 50, oy: 50, zoom: 1 }); delete L.x; delete L.y; delete L.w; delete L.r; }
+      else { Object.assign(L, { fit: 'free', x: 50, y: 50, w: 50, r: 0 }); delete L.ox; delete L.oy; delete L.zoom; }
+    });
+    if (a === 'add') { Lay.add($('#lpAdd').value.trim()); }
+  });
+  panel.addEventListener('change', async e => {
+    const el = e.target, a = el.dataset.lp;
+    if (a === 'overflow') Lay.update(v => { v.overflow = el.checked; });
+    if (a === 'src' && el.value.trim()) Lay.update((v, L) => { L.src = el.value.trim(); });
+    if (a === 'file') {
+      const f = el.files[0];
+      if (!f) return;
+      if (!LIVE) return toast('파일 올리기는 구글을 연결한 뒤에 된다. 지금은 주소를 넣자', true);
+      try { toast('올리는 중…'); const { id } = await api('uploadImage', { filename: f.name, mimeType: f.type, data: await fileToBase64(f) }); Lay.add(id); toast('올렸다'); }
+      catch (err) { toast(err.message, true); }
+    }
+  });
+  // 슬라이더: 끄는 동안은 그림만 바로 바꾸고, 손을 떼면 저장
+  panel.addEventListener('input', e => {
+    const el = e.target, a = el.dataset.lp;
+    if (!['w', 'r', 'zoom'].includes(a)) return;
+    const v = Lay.data(), L = v.layers[Lay.sel];
+    L[a] = +el.value;
+    el.nextElementSibling.textContent = a === 'zoom' ? (+el.value).toFixed(2) + '×' : Math.round(el.value) + (a === 'r' ? '°' : '%');
+    const img = $$('.lays .lay', Lay.region() || document)[Lay.sel];
+    if (img) img.style.cssText = layerStyle(L);
+    setPath(Data.site, Lay.path, { layers: v.layers, overflow: v.overflow });
+  });
+  panel.addEventListener('change', e => { if (['w', 'r', 'zoom'].includes(e.target.dataset.lp)) { touch(); Lay.rerender(); } });
+
+  // 누르기 시작한 곳을 기억한다 — 판·영역·도구 막대에서 시작한 누르기는 '바깥 누르기'가 아니다
+  document.addEventListener('pointerdown', e => {
+    Lay.downInside = !!e.target.closest('#laypanel, #editbar, .lay-target');
+  }, true);
+  // 영역 안에서 끌기
+  document.addEventListener('pointerdown', e => {
+    if (!Lay.path || e.button !== 0) return;
+    const region = Lay.region();
+    if (!region || !region.contains(e.target) || e.target.closest('#laypanel')) return;
+    const v = Lay.data();
+    // 자유 그림을 누르면 그 그림을 고른다
+    const imgs = $$('.lays .lay', region);
+    // 자유 그림만 눌러서 고른다. 채우는 그림 위를 누르면 지금 고른 그림을 끈다
+    const hit = e.target.classList?.contains('free') ? imgs.indexOf(e.target) : -1;
+    if (hit >= 0 && hit !== Lay.sel) { Lay.sel = hit; Lay.paint(); }
+    const L = v.layers[Lay.sel];
+    if (!L) return;
+    e.preventDefault();
+    const box = region.getBoundingClientRect();
+    const start = { x: e.clientX, y: e.clientY, L: { ...L } };
+    const img = imgs[Lay.sel];
+    const move = ev => {
+      const dx = (ev.clientX - start.x) / box.width * 100, dy = (ev.clientY - start.y) / box.height * 100;
+      const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+      if (L.fit === 'free') {
+        L.x = v.overflow ? start.L.x + dx : clamp(start.L.x + dx, 0, 100);
+        L.y = v.overflow ? start.L.y + dy : clamp(start.L.y + dy, 0, 100);
+      } else {
+        const k = 1 / Math.max(1, L.zoom || 1);
+        L.ox = clamp((start.L.ox ?? 50) - dx * k, 0, 100);
+        L.oy = clamp((start.L.oy ?? 50) - dy * k, 0, 100);
+      }
+      if (img) img.style.cssText = layerStyle(L);
+    };
+    const up = () => {
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', up);
+      Lay.save(v);
+      // 끌기를 끝낸 손은 바깥에서 떼도 '바깥 누르기'로 치지 않는다
+      Lay.justDragged = true;
+      setTimeout(() => { Lay.justDragged = false; }, 0);
+    };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+  }, true);
+  // 영역과 판 바깥을 누르면 끝
+  document.addEventListener('click', e => {
+    if (!Lay.path || !e.target.isConnected || Lay.justDragged || Lay.downInside) return; // 판을 다시 그리느라 떨어져 나간 버튼은 바깥이 아니다
+    if (e.target.closest('#laypanel, #editbar, .lay-target')) return;
+    Lay.close();
+  });
+  addEventListener('hashchange', () => Lay.close());
+
   /* ── 누르기: 고치기 모드에서는 글자·그림을 고친다 ── */
   document.addEventListener('click', e => {
     if (!document.body.classList.contains('editing')) return;
-    if (e.target.closest('#editbar, #imgpop')) return;
+    if (e.target.closest('#editbar, #imgpop, #laypanel')) return;
+    // 다른 걸 고치러 가면 그림 겹 판은 닫는다
+    if (Lay.path && !Lay.downInside && !Lay.justDragged && e.target.isConnected && !e.target.closest('.lay-target')) Lay.close();
+    if (Lay.path && e.target.closest('.lay-target')) { e.preventDefault(); e.stopPropagation(); return; }
     const sp = e.target.closest('.ed-t');
     if (sp) { e.preventDefault(); e.stopPropagation(); startEdit(sp); return; }
     const im = e.target.closest('[data-ei]');
     if (im) {
       const inner = e.target.closest('a, button, input, label, select, textarea, [data-play], [data-view-item]');
-      if (!inner || inner === im || !im.contains(inner)) { e.preventDefault(); e.stopPropagation(); openImg(im.dataset.ei, im); return; }
+      if (!inner || inner === im || !im.contains(inner)) {
+        e.preventDefault(); e.stopPropagation();
+        if (Lay.path && im.dataset.ei === Lay.path) return; // 편집 중인 영역 안을 누른 건 끌기
+        SINGLE.has(im.dataset.ei) ? openImg(im.dataset.ei, im) : Lay.open(im.dataset.ei);
+        return;
+      }
     }
     if (!e.target.closest('#imgpop')) pop.hidden = true;
   }, true);
@@ -216,7 +432,7 @@
     const b = e.target.closest('[data-eb]');
     if (!b) return;
     const a = b.dataset.eb;
-    if (a === 'edit' || a === 'browse') { document.body.classList.toggle('editing', a === 'edit'); pop.hidden = true; paintBar(); }
+    if (a === 'edit' || a === 'browse') { document.body.classList.toggle('editing', a === 'edit'); pop.hidden = true; Lay.close(); paintBar(); }
     if (a === 'intro') Intro.show();
     if (a === 'reset') {
       if (!confirm('고친 내용을 전부 버리고 저장된 상태로 되돌릴까?')) return;

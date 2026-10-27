@@ -75,6 +75,15 @@ addEventListener('hashchange', route);
 
 /* 이미지 칸: 주소/드라이브 id 를 직접 넣거나, 파일을 골라 드라이브에 올린다 */
 function imgField(label, value, key, shape) {
+  if (value && typeof value === 'object') {
+    const n = layersOf(value).layers.length;
+    return `<div class="field"><span>${label}</span>
+      <div class="imgf">
+        <span class="prev ${shape === true ? 'wide' : shape || ''}" style="background-image:url('${esc(imgUrl(firstSrc(value), 400))}')"></span>
+        <p class="muted sm" style="flex:1">그림 ${n}장을 겹쳐 놓았다. 위치·순서는 <a href="./?edit#/" style="text-decoration:underline">사이트에서 보며 고치기</a>에서 바꾼다.</p>
+        <button type="button" class="btn sm" data-layreset="${esc(key)}">한 장으로 되돌리기</button>
+      </div></div>`;
+  }
   return `<label class="field"><span>${label} <em>주소나 드라이브 링크, 또는 파일 올리기</em></span>
     <div class="imgf">
       <span class="prev ${shape === true ? 'wide' : shape || ''}" style="background-image:url('${esc(imgUrl(value, 400))}')"></span>
@@ -112,6 +121,18 @@ function bindInputs(target) {
     } catch (err) { toast(err.message, true); }
   };
 }
+
+// 겹친 그림을 첫 장 하나로 되돌린다
+pane.addEventListener('click', e => {
+  const b = e.target.closest('[data-layreset]');
+  if (!b || !confirm('겹친 그림을 첫 장 하나만 남길까?')) return;
+  const path = b.dataset.layreset.split('.');
+  let o = draft;
+  while (path.length > 1) o = o[path.shift()];
+  o[path[0]] = firstSrc(o[path[0]]);
+  markDirty();
+  route();
+});
 
 /* ─── 사이트 ─── */
 function paneSite() {

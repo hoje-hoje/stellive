@@ -263,9 +263,32 @@ const IMAGE_SLOTS = [
   ['profileBg', '멤버 프로필 그림 뒤 배경 (멤버별 배경이 없을 때)', ''],
 ];
 function siteImg(key, w = 1600) {
-  const v = Data.site?.images?.[key];
+  const v = firstSrc(Data.site?.images?.[key]);
   if (v) return imgUrl(v, w);
   if (key === 'cafe') return siteImg('logo', w);
-  if (key === 'intro') return imgUrl(Data.site?.banner?.image, w);
+  if (key === 'intro') return imgUrl(firstSrc(Data.site?.banner?.image), w);
   return IMAGE_SLOTS.find(s => s[0] === key)?.[2] || '';
+}
+
+/* ─── 그림 겹 ───
+   그림 칸 값은 예전처럼 주소 하나("https://…")이거나, 여러 장을 겹친 것:
+   { layers: [ { src, fit: 'cover'|'contain', ox, oy, zoom }   ← 영역을 채우는 그림 (끌어서 위치, 확대)
+              { src, fit: 'free', x, y, w, r }               ← 자유 그림 (위치 %, 너비 %, 회전) ], overflow: 영역 밖으로 나가도 보이기 } */
+function layersOf(v, def = {}) {
+  if (!v) return { layers: [], overflow: false };
+  if (typeof v === 'string') return { layers: [{ src: v, fit: def.fit || 'cover', ox: def.ox ?? 50, oy: def.oy ?? 50, zoom: 1 }], overflow: false };
+  return { layers: Array.isArray(v.layers) ? v.layers.filter(l => l && l.src) : [], overflow: !!v.overflow };
+}
+const firstSrc = v => (typeof v === 'string' ? v : layersOf(v).layers[0]?.src || '');
+function layerStyle(L) {
+  const n = (v, d) => (Number.isFinite(+v) ? +v : d);
+  if (L.fit === 'free') return `left:${n(L.x, 50)}%;top:${n(L.y, 50)}%;width:${n(L.w, 40)}%;transform:translate(-50%,-50%) rotate(${n(L.r, 0)}deg)`;
+  const ox = n(L.ox, 50), oy = n(L.oy, 50);
+  return `object-fit:${L.fit === 'contain' ? 'contain' : 'cover'};object-position:${ox}% ${oy}%;transform:scale(${n(L.zoom, 1)});transform-origin:${ox}% ${oy}%`;
+}
+function layersHtml(v, def) {
+  const { layers, overflow } = layersOf(v, def);
+  if (!layers.length) return '';
+  return `<div class="lays${overflow ? ' ov' : ''}" aria-hidden="true">${layers.map(L =>
+    `<img class="lay ${L.fit === 'free' ? 'free' : 'fill'}" src="${esc(imgUrl(L.src, 1600))}" alt="" style="${layerStyle(L)}" draggable="false">`).join('')}</div>`;
 }
