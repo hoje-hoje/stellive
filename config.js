@@ -7,7 +7,7 @@ window.CONFIG = {
 
   /* ① Apps Script 웹 앱 주소 — 드라이브 읽기/올리기/별표/관리자 저장을 전부 여기서 한다.
         예: "https://script.google.com/macros/s/AKfy..../exec" */
-  scriptUrl: "",
+  scriptUrl: "https://script.google.com/macros/s/AKfycbw6t7AxaEV0Lcs1T9MPhIKfX_lta7avar8bs5uPtD6Uf9dZLd1M6pvoGrV8AOio2JXdVg/exec",
 
   /* ② 구글 로그인용 OAuth 클라이언트 ID
         예: "1234567890-abcdefg.apps.googleusercontent.com" */
