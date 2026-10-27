@@ -175,7 +175,7 @@ function verify_(token) {
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
   const res = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(token), { muteHttpExceptions: true });
-  if (res.getResponseCode() !== 200) throw new Error('로그인이 만료됐다. 다시 로그인해 주세요');
+  if (res.getResponseCode() !== 200) throw new Error('로그인이 만료됐다. 다시 로그인하자');
   const info = JSON.parse(res.getContentText());
   if (info.aud !== CLIENT_ID) throw new Error('다른 사이트의 로그인이다');
   const user = { email: info.email, name: info.name || info.email.split('@')[0], picture: info.picture || '' };

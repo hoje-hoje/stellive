@@ -146,7 +146,7 @@ const Data = {
         const site = await fetch('data/site.json').then(r => r.json()).catch(() => ({ groups: [], members: [], events: [] }));
         this.set(site, []);
       }
-      toast('서버에서 목록을 못 받아왔어요', true);
+      toast('서버에서 목록을 못 받아왔다', true);
     }
   },
 
@@ -172,9 +172,9 @@ const Data = {
 
 /* ─── 서버 요청 ─── */
 async function api(action, payload = {}) {
-  if (!LIVE) throw new Error('아직 서버(Apps Script)가 연결되지 않았어요. README 를 봐 주세요');
+  if (!LIVE) throw new Error('아직 서버(Apps Script)가 연결되지 않았다. README 를 보자');
   const token = Auth.token();
-  if (!token) throw new Error('먼저 구글 로그인을 해 주세요');
+  if (!token) throw new Error('먼저 구글 로그인을 하자');
   // text/plain 으로 보내야 Apps Script 가 CORS 사전 요청 없이 받는다
   const res = await fetch(CFG.scriptUrl, {
     method: 'POST',
@@ -239,7 +239,7 @@ const Auth = {
 
   renderButton(el) {
     if (!window.google?.accounts?.id) {
-      el.innerHTML = `<button class="btn ghost sm" disabled title="config.js 에 googleClientId 를 넣어야 해요">구글 로그인</button>`;
+      el.innerHTML = `<button class="btn sm" disabled title="config.js 에 googleClientId 를 넣어야 한다">구글 로그인</button>`;
       return;
     }
     el.innerHTML = '';
@@ -250,7 +250,7 @@ const Auth = {
     this.user = null;
     store.del('auth');
     if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
-    if (expired) toast('로그인이 만료됐어요. 다시 로그인해 주세요', true);
+    if (expired) toast('로그인이 만료됐다. 다시 로그인하자', true);
     this.emit();
   },
 };
@@ -367,4 +367,17 @@ function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   return isNaN(d) ? '' : `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/* 관리자가 바꾼 테마 색을 덮어쓴다 — site.themeColors = { dark: { bg, fg, accent, wall }, ... } */
+const THEME_VARS = { bg: '--bg', fg: '--fg', dim: '--dim', accent: '--accent', panel: '--panel', wall: '--wall', wallFg: '--wall-fg', btn: '--btn', btnFg: '--btn-fg' };
+function applySiteStyle(site) {
+  let el = document.getElementById('siteStyle');
+  if (!el) { el = document.createElement('style'); el.id = 'siteStyle'; document.head.append(el); }
+  const tc = site?.themeColors || {};
+  el.textContent = Object.entries(tc).map(([theme, vals]) => {
+    const decl = Object.entries(vals || {}).filter(([k, v]) => THEME_VARS[k] && /^#[0-9a-f]{3,8}$/i.test(v)).map(([k, v]) => `${THEME_VARS[k]}:${v}`).join(';');
+    return decl ? `[data-theme="${theme}"]{${decl}}` : '';
+  }).join('\n');
+  window.dispatchEvent(new Event('themechange'));
 }

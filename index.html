@@ -9,7 +9,7 @@
 <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <script src="config.js"></script>
 <script src="js/common.js"></script>
@@ -23,69 +23,48 @@
     <div class="in-brand"><img src="assets/logo.svg" alt=""><span>STELLIVE</span></div>
     <svg class="in-crest" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6"><circle cx="50" cy="50" r="48"/><circle cx="50" cy="50" r="41" stroke-width=".4"/><path d="M79 21A41 41 0 1 1 21 79Z"/><path d="M30 42Q31.6 58.4 49 61 31.6 63.6 30 80 28.4 63.6 10.5 61 28.4 58.4 30 42Z"/><path d="M40.8 64Q41.6 71.9 49.5 72.8 41.6 73.7 40.8 81.6 40 73.7 32.1 72.8 40 71.9 40.8 64Z"/></g></svg>
     <div class="in-foot">
-      <em>Since the first star<br>— a fan archive</em>
-      <small>팬이 만든 비공식 아카이브 ·<br>스텔라이브 공식 활동이 아니에요</small>
+      <em data-t="intro.wallEn"></em>
+      <small data-t="intro.wallKo"></small>
     </div>
   </div>
   <div class="in-sky" id="introSky"></div>
   <div class="in-dots" id="introDots"></div>
   <div class="in-type">
-    <span class="sc">Stellar Live Archive</span>
-    <span class="in-title">STELLIVE</span>
-    <span class="in-sub">Archive</span>
+    <span class="sc" data-t="intro.kicker"></span>
+    <span class="in-title" data-t="intro.title"></span>
+    <span class="in-sub" data-t="intro.sub"></span>
     <i class="in-rule"></i>
-    <span class="in-ko" id="introKo">별들의 노래와 순간을 모아두는 곳</span>
+    <span class="in-ko" data-t="intro.ko"></span>
   </div>
-  <button type="button" class="in-enter" id="enterBtn">ENTER
+  <button type="button" class="in-enter" id="enterBtn"><span data-t="intro.enter"></span>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
   </button>
-  <label class="in-skip"><input type="checkbox" id="skipToday">오늘 하루 다시 보지 않기</label>
+  <label class="in-skip"><input type="checkbox" id="skipToday"><span data-t="intro.skip"></span></label>
 </section>
 
-<!-- 가장자리: 왼쪽 벽 / 위쪽 끝에 마우스를 대면 열린다 -->
+<!-- 왼쪽 벽에 마우스를 대면 목차가 나온다 -->
 <div class="edge edge-left" id="edgeLeft" aria-hidden="true"></div>
-<div class="edge edge-top" id="edgeTop" aria-hidden="true"></div>
-<button type="button" class="index-tab" id="indexTab" aria-label="목차 열기" aria-controls="drawer"><span>INDEX</span></button>
+<button type="button" class="index-tab" id="indexTab" aria-label="목차 열기" aria-controls="drawer"><span data-t="nav.title"></span></button>
+<aside id="drawer" aria-label="목차"></aside>
 
-<aside id="drawer" aria-label="목차">
-  <span class="dr-k">INDEX</span>
-  <nav class="dr-main">
-    <a href="#/">홈</a>
-    <a href="#/calendar">캘린더</a>
-    <a href="#/listen">노래 듣기</a>
-    <a href="#/group">단체 · 합방</a>
-    <a href="#/stars">별표</a>
-    <a href="#/about">About<small>소개 · 가이드라인</small></a>
-  </nav>
-  <i class="dr-rule"></i>
-  <div id="drawerMembers"></div>
-  <div class="dr-foot">
-    <button type="button" class="btn sm solid" data-upload="{}">＋ 올리기</button>
-    <div id="login"></div>
-  </div>
-</aside>
-
+<!-- 위 링크 줄: 오른쪽 위 ☰ 로 연다 -->
 <header id="topbar">
   <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="목차 열기">
     <svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
   <a class="tb-brand" href="#/">STELLIVE</a>
-  <nav class="tb-links">
-    <a href="#/">HOME</a>
-    <a href="#/calendar">CALENDAR</a>
-    <a href="#/listen">LISTEN</a>
-    <a href="#/group">UNITS</a>
-    <a href="#/stars">STARS</a>
-    <a href="#/about">ABOUT</a>
-  </nav>
-  <button type="button" class="btn sm solid" data-upload="{}">올리기</button>
+  <nav class="tb-links" id="tbLinks"></nav>
+  <button type="button" class="btn sm solid tb-up" data-upload="{}" data-t="nav.upload"></button>
 </header>
 
 <div class="corner" id="corner">
   <span id="cornerDots"></span>
-  <button type="button" class="btn sm line" id="introBtn">
+  <button type="button" class="btn sm line" id="introBtn" title="첫 화면 다시 보기">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.5 4.8 2.7 8 9.5 9.5-6.8 1.5-9 4.7-9.5 9.5-.5-4.8-2.7-8-9.5-9.5 6.8-1.5 9-4.7 9.5-9.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-    <b>INTRO</b><span>첫 화면 다시 보기</span>
+    <b data-t="nav.intro"></b>
+  </button>
+  <button type="button" class="btn sm line burger" id="topBtn" aria-label="링크 줄 열기" aria-expanded="false" aria-controls="topbar">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
 </div>
 
@@ -130,7 +109,7 @@
     </div>
   </div>
 </div>
-<div id="queue"><div class="q-head"><b>재생 목록</b><span></span></div><ol></ol></div>
+<div id="queue"><div class="q-head"><b data-t="player.queue"></b><span></span></div><ol></ol></div>
 
 <!-- 보기 창 -->
 <div class="modal" id="viewer" hidden>
@@ -145,22 +124,22 @@
 <div class="modal" id="upload" hidden>
   <form class="modal-box" autocomplete="off" role="dialog" aria-modal="true" aria-labelledby="upH">
     <button type="button" class="icon-btn close" data-close aria-label="닫기"></button>
-    <h2 id="upH"><span class="sc">Upload</span>올리기</h2>
+    <h2 id="upH"><span class="sc">Upload</span><span data-t="upload.title"></span></h2>
     <p class="hint" id="upHint"></p>
 
     <div class="field"><span>종류</span><div class="chips" id="upKind"></div></div>
-    <div class="field"><span>멤버 <em>두 명 이상 고르면 합방으로 들어가요</em></span><div class="chips" id="upMembers"></div></div>
+    <div class="field"><span>멤버 <em>두 명 이상 고르면 합방으로 들어간다</em></span><div class="chips" id="upMembers"></div></div>
     <label class="field"><span>단체곡이면 <em>기수 전체가 부른 곡 등</em></span><select id="upGroup"></select></label>
     <label class="field"><span>제목</span><input id="upTitle" placeholder="비워두면 파일 이름으로"></label>
 
     <fieldset class="sources">
-      <legend>어디서 보나요? <em>하나 이상 · 노래는 둘 다 넣으면 유튜브가 막힌 곳에서도 들려요</em></legend>
+      <legend>어디서 보나 <em>하나 이상 · 노래는 둘 다 넣으면 유튜브가 막힌 곳에서도 들린다</em></legend>
       <label class="field"><span>링크 <em>유튜브 · 치지직 클립 · X</em></span><input id="upUrl" type="url" placeholder="https://"></label>
       <label class="field drop"><input id="upFile" type="file" accept="video/*,audio/*,image/*"><span class="drop-txt">드라이브에 올릴 파일 — 끌어다 놓거나 눌러서 고르기</span></label>
       <label class="field"><span>또는 이미 드라이브에 있는 파일 링크 <em>큰 영상은 드라이브에 직접 올리고 링크만</em></span><input id="upAlt" type="url" placeholder="https://drive.google.com/file/d/…"></label>
     </fieldset>
 
-    <p class="hint small">올리기 전에 <a href="#/about">2차 창작 가이드라인</a>을 확인해 주세요. 원본 공개 전 클립, 방송 전체를 담은 영상은 받지 않아요.</p>
+    <p class="hint small"><a href="#/about" data-t="upload.rules"></a></p>
     <div class="modal-actions">
       <span class="grow" id="upStatus"></span>
       <button type="submit" class="btn solid" id="upSubmit">올리기</button>
@@ -168,6 +147,7 @@
   </form>
 </div>
 
+<script src="js/texts.js"></script>
 <script src="js/guide.js"></script>
 <script src="js/player.js"></script>
 <script src="js/app.js"></script>
