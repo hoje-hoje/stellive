@@ -24,7 +24,9 @@
   }
 
   /* ── 임시 저장 ── */
+  let beforeEdit = null; // 이번에 고치기 시작하기 전 상태 (처음 고칠 때 백업으로 남긴다)
   function touch() {
+    if (beforeEdit) { Backups.add('고치기 시작 전', JSON.parse(beforeEdit)); beforeEdit = null; }
     changes++;
     store.set('editDraft', Data.site);
     paintBar();
@@ -144,7 +146,8 @@
         <button type="button" class="btn sm" id="ipClose">닫기</button>
         <button type="button" class="btn sm solid" id="ipOk">적용</button>
       </div>
-      ${/^members\.\d+\.art$/.test(path) ? `<button type="button" class="tiny" id="ipBg">그림 뒤 배경 바꾸기</button>` : ''}`;
+      ${/^members\.\d+\.art$/.test(path) ? `<button type="button" class="tiny" id="ipBg">그림 뒤 배경 바꾸기</button>` : ''}
+      ${anchor.closest('[data-pos]') ? `<button type="button" class="btn sm" id="ipPos">✥ 이 자리에서 위치 · 크기 옮기기</button>` : ''}`;
     pop.hidden = false;
     const w = 360, top = Math.min(innerHeight - 320, Math.max(12, r.top + 12)), left = Math.min(innerWidth - w - 12, Math.max(12, r.left + 12));
     Object.assign(pop.style, { top: top + 'px', left: left + 'px', width: w + 'px' });
@@ -156,6 +159,7 @@
     $('#ipClear').onclick = () => apply('');
     $('#ipClose').onclick = () => (pop.hidden = true);
     if ($('#ipBg')) $('#ipBg').onclick = () => openImg(path.replace(/\.art$/, '.artBg'), anchor);
+    if ($('#ipPos')) $('#ipPos').onclick = () => { pop.hidden = true; Pos.open(anchor.closest('[data-pos]').dataset.pos); };
     url.onkeydown = e => { if (e.key === 'Enter') apply(url.value.trim()); if (e.key === 'Escape') pop.hidden = true; };
     $('#ipFile').onchange = async e => {
       const f = e.target.files[0];
@@ -197,6 +201,7 @@
       return [...document.querySelectorAll(`[data-ei="${CSS.escape(this.path)}"]`)].find(el => el.offsetParent || el.id === 'drawer') || null;
     },
     open(path) {
+      Pos.close();
       this.path = path;
       this.sel = 0;
       // 첫 화면 오른쪽 그림이 비어 있으면 배너를 쓰고 있으므로, 고치기 시작할 때 복사해 둔다
@@ -378,6 +383,165 @@
   });
   addEventListener('hashchange', () => Lay.close());
 
+
+  /* ── 자리 옮기기 (로고 · 벽 문양) ──
+     그 자리에 있는 그림을 끌어서 옮기고, 판에서 크기 · 회전을 바꾼다. 자리마다 따로 저장된다 */
+  const Pos = {
+    key: null,
+    get() { return { dx: 0, dy: 0, s: 1, r: 0, ...(Data.site.positions?.[this.key] || {}) }; },
+    put(p) {
+      Data.site.positions ||= {};
+      const clean = p.dx || p.dy || p.r || p.s !== 1;
+      if (clean) Data.site.positions[this.key] = { dx: Math.round(p.dx), dy: Math.round(p.dy), s: +(+p.s).toFixed(2), r: Math.round(p.r) };
+      else delete Data.site.positions[this.key];
+      applyPositions();
+    },
+    els() { return $$(`[data-pos="${CSS.escape(this.key)}"]`); },
+    open(key) {
+      Lay.close();
+      this.key = key;
+      document.body.classList.add('pos-editing');
+      if (key === 'logo.drawer') Menu.openDrawer(false);
+      this.paint();
+    },
+    close() {
+      if (!this.key) return;
+      this.key = null;
+      document.body.classList.remove('pos-editing');
+      $$('.pos-target').forEach(el => el.classList.remove('pos-target'));
+      panel.hidden = true;
+    },
+    paint() {
+      const p = this.get();
+      this.els().forEach(el => el.classList.add('pos-target'));
+      panel.hidden = false;
+      panel.innerHTML = `
+        <div class="lp-h"><b>${esc(POS_LABELS[this.key] || this.key)}</b><button type="button" class="icon-btn sm" data-ps="close" aria-label="닫기">${ICON.close}</button></div>
+        <p class="lp-hint">테두리가 생긴 그림을 <b>끌면</b> 자리가 옮겨진다. 이 자리에서만 바뀌고 다른 곳의 같은 그림은 그대로다.</p>
+        <label class="lp-rg"><span>크기</span><input type="range" min="0.2" max="4" step="0.01" value="${p.s}" data-ps="s"><em>${(+p.s).toFixed(2)}×</em></label>
+        <label class="lp-rg"><span>회전</span><input type="range" min="-180" max="180" step="1" value="${p.r}" data-ps="r"><em>${Math.round(p.r)}°</em></label>
+        <p class="lp-hint">가로 ${Math.round(p.dx)}px · 세로 ${Math.round(p.dy)}px 옮김</p>
+        <div class="lp-row"><button type="button" class="btn sm" data-ps="reset">처음 자리로</button><span class="grow"></span><button type="button" class="btn sm solid" data-ps="close">다 했다</button></div>`;
+    },
+  };
+  panel.addEventListener('click', e => {
+    const b = e.target.closest('[data-ps]');
+    if (!b || !Pos.key) return;
+    if (b.dataset.ps === 'close') Pos.close();
+    if (b.dataset.ps === 'reset') { Pos.put({ dx: 0, dy: 0, s: 1, r: 0 }); touch(); Pos.paint(); }
+  });
+  panel.addEventListener('input', e => {
+    const k = e.target.dataset.ps;
+    if (!Pos.key || (k !== 's' && k !== 'r')) return;
+    const p = Pos.get();
+    p[k] = +e.target.value;
+    e.target.nextElementSibling.textContent = k === 's' ? (+p.s).toFixed(2) + '×' : Math.round(p.r) + '°';
+    Pos.put(p);
+  });
+  panel.addEventListener('change', e => { if (Pos.key && (e.target.dataset.ps === 's' || e.target.dataset.ps === 'r')) touch(); });
+  document.addEventListener('pointerdown', e => {
+    if (!Pos.key || e.button !== 0) return;
+    const el = e.target.closest(`[data-pos="${CSS.escape(Pos.key)}"]`);
+    if (!el) return;
+    e.preventDefault();
+    const start = { x: e.clientX, y: e.clientY, p: Pos.get() };
+    const move = ev => { Pos.put({ ...start.p, dx: start.p.dx + ev.clientX - start.x, dy: start.p.dy + ev.clientY - start.y }); };
+    const up = () => {
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', up);
+      touch();
+      Pos.paint();
+      Pos.justDragged = true;
+      setTimeout(() => { Pos.justDragged = false; }, 0);
+    };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+  }, true);
+  document.addEventListener('click', e => {
+    if (!Pos.key) return;
+    if (e.target.closest('#laypanel, #editbar')) return; // 판과 도구 막대 버튼은 그대로 작동
+    if (e.target.closest(`[data-pos="${CSS.escape(Pos.key)}"]`)) { e.preventDefault(); e.stopImmediatePropagation(); return; } // 옮기는 그림은 눌러도 이동·그림 창 없음
+    if (Pos.justDragged || !e.target.isConnected) return;
+    Pos.close();
+  }, true);
+  addEventListener('hashchange', () => Pos.close());
+
+  /* ── 백업 창 ── */
+  const BackupWin = {
+    el: null,
+    open() {
+      if (!this.el) {
+        this.el = document.createElement('div');
+        this.el.className = 'modal';
+        this.el.id = 'backupWin';
+        document.body.append(this.el);
+        this.el.addEventListener('click', e => this.click(e));
+        this.el.addEventListener('change', e => this.load(e));
+      }
+      this.el.hidden = false;
+      this.paint();
+    },
+    async paint() {
+      const list = Backups.list();
+      const fmt = iso => { const d = new Date(iso); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+      this.el.innerHTML = `
+        <div class="modal-box" role="dialog" aria-modal="true" aria-label="백업">
+          <button type="button" class="icon-btn close" data-bk="close" aria-label="닫기">${ICON.close}</button>
+          <h2><span class="sc">Backup</span>백업</h2>
+          <p class="hint">고치기 시작하기 전, 저장 · 내려받기 할 때마다 이 브라우저에 자동으로 남는다 (최근 ${Backups.max}개). 되살리면 지금 화면이 그 상태로 바뀌고, 저장해야 사이트에 반영된다.</p>
+          <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn sm" data-bk="now">지금 상태 백업</button>
+            <button type="button" class="btn sm" data-bk="dlnow">지금 상태를 파일로 받기</button>
+            <label class="btn sm">백업 파일 불러오기<input type="file" accept="application/json,.json" data-bk="file" hidden></label>
+          </div>
+          <ol class="bk-list">${list.map((b, i) => `<li>
+            <span><b>${esc(b.label)}</b><small>${fmt(b.at)} · ${(b.json.length / 1024).toFixed(1)}KB</small></span>
+            <button type="button" class="btn sm" data-bk="dl" data-i="${i}">파일</button>
+            <button type="button" class="btn sm solid" data-bk="restore" data-i="${i}">되살리기</button>
+            <button type="button" class="icon-btn sm" data-bk="del" data-i="${i}" aria-label="지우기">${ICON.trash}</button>
+          </li>`).join('') || '<li class="muted">아직 백업이 없다</li>'}</ol>
+          ${LIVE ? `<h3 class="ko" style="font-size:18px">드라이브 백업 <small class="muted">저장할 때마다 서버에 남는 이전 버전</small></h3><ol class="bk-list" id="bkServer"><li class="muted">불러오는 중…</li></ol>` : ''}
+        </div>`;
+      if (LIVE) {
+        try {
+          const { backups } = await api('listBackups');
+          $('#bkServer').innerHTML = backups.map(b => `<li><span><b>${esc(b.name)}</b><small>${fmt(b.at)}</small></span><button type="button" class="btn sm solid" data-bk="srestore" data-id="${esc(b.id)}">되살리기</button></li>`).join('') || '<li class="muted">아직 없다</li>';
+        } catch (err) { $('#bkServer').innerHTML = `<li class="muted">${esc(err.message)}</li>`; }
+      }
+    },
+    use(site, label) {
+      if (!site || !Array.isArray(site.members) || !Array.isArray(site.groups)) return toast('사이트 데이터가 아니다', true);
+      if (!confirm(`'${label}' 상태로 되살릴까? 지금 상태는 먼저 백업해 둔다.`)) return;
+      Backups.add('되살리기 전', Data.site);
+      Data.set(JSON.parse(JSON.stringify(site)), Data.items);
+      touch();
+      refresh();
+      this.el.hidden = true;
+      toast('되살렸다. 마음에 들면 저장하자');
+    },
+    async click(e) {
+      const b = e.target.closest('[data-bk]');
+      if (e.target === this.el) this.el.hidden = true;
+      if (!b) return;
+      const a = b.dataset.bk, i = +b.dataset.i, list = Backups.list();
+      if (a === 'close') this.el.hidden = true;
+      if (a === 'now') { Backups.add('직접 백업', Data.site); this.paint(); toast('백업했다'); }
+      if (a === 'dlnow') Backups.download(Data.site);
+      if (a === 'dl') Backups.download(JSON.parse(list[i].json), `stellive-backup-${list[i].at.slice(0, 16).replace(/[:T]/g, '-')}.json`);
+      if (a === 'restore') this.use(JSON.parse(list[i].json), list[i].label);
+      if (a === 'del' && confirm('이 백업을 지울까?')) { Backups.remove(i); this.paint(); }
+      if (a === 'srestore') {
+        try { const { site } = await api('getBackup', { id: b.dataset.id }); this.use(site, '드라이브 백업'); }
+        catch (err) { toast(err.message, true); }
+      }
+    },
+    load(e) {
+      const f = e.target.files?.[0];
+      if (e.target.dataset.bk !== 'file' || !f) return;
+      f.text().then(txt => { try { this.use(JSON.parse(txt), f.name); } catch { toast('읽을 수 없는 파일이다', true); } });
+    },
+  };
+
   /* ── 누르기: 고치기 모드에서는 글자·그림을 고친다 ── */
   document.addEventListener('click', e => {
     if (!document.body.classList.contains('editing')) return;
@@ -424,6 +588,7 @@
       <button type="button" class="btn sm" data-eb="intro">첫 화면</button>
       <a class="btn sm" href="admin.html#site">자세한 설정</a>
       <span class="eb-st">${changes ? `저장 안 한 변경 ${changes}` : store.get('editDraft') ? '임시로 고친 내용이 있다' : ''}</span>
+      <button type="button" class="btn sm" data-eb="backup">백업</button>
       <button type="button" class="btn sm" data-eb="reset">되돌리기</button>
       <button type="button" class="btn sm solid" data-eb="save">${LIVE ? '저장' : 'site.json 내려받기'}</button>
       <a class="btn sm" href="./" title="편집 끝내기">나가기</a>`;
@@ -432,8 +597,9 @@
     const b = e.target.closest('[data-eb]');
     if (!b) return;
     const a = b.dataset.eb;
-    if (a === 'edit' || a === 'browse') { document.body.classList.toggle('editing', a === 'edit'); pop.hidden = true; Lay.close(); paintBar(); }
+    if (a === 'edit' || a === 'browse') { document.body.classList.toggle('editing', a === 'edit'); pop.hidden = true; Lay.close(); Pos.close(); paintBar(); }
     if (a === 'intro') Intro.show();
+    if (a === 'backup') BackupWin.open();
     if (a === 'reset') {
       if (!confirm('고친 내용을 전부 버리고 저장된 상태로 되돌릴까?')) return;
       store.del('editDraft');
@@ -441,6 +607,7 @@
     }
     if (a === 'save') {
       const site = JSON.parse(JSON.stringify(Data.site));
+      Backups.add(LIVE ? '저장' : '내려받기', site);
       if (!LIVE) {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(new Blob([JSON.stringify(site, null, 2)], { type: 'application/json' }));
@@ -468,6 +635,7 @@
   window.dataReady.then(() => {
     const draft = store.get('editDraft');
     if (draft) Data.set(draft, Data.items);
+    beforeEdit = JSON.stringify(Data.site);
     convert(document.body);
     paintBar();
   });

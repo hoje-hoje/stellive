@@ -474,6 +474,7 @@ $('#saveBtn').onclick = async () => {
   try {
     $('#saveBtn').disabled = true;
     $('#dirty').textContent = '저장하는 중… (드라이브 폴더도 맞추느라 조금 걸린다)';
+    Backups.add('저장 (자세한 설정)', draft);
     const { site } = await api('saveSite', { site: draft });
     Data.set(site, Data.items);
     store.set('cache', { site, items: Data.items.map(({ _ok, ...x }) => x) });
@@ -487,6 +488,7 @@ $('#saveBtn').onclick = async () => {
 };
 $('#dlJson').onclick = downloadJson;
 function downloadJson() {
+  Backups.add('내려받기 (자세한 설정)', draft);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(draft, null, 2)], { type: 'application/json' }));
   a.download = 'site.json';

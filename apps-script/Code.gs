@@ -150,7 +150,9 @@ const ACTIONS = {
     needAdmin_(u);
     const site = b.site;
     if (!site || !Array.isArray(site.members) || !Array.isArray(site.groups)) throw new Error('사이트 데이터가 이상하다');
-    DriveApp.getFileById(props.getProperty('SITE_FILE_ID')).setContent(JSON.stringify(site, null, 2));
+    const file = DriveApp.getFileById(props.getProperty('SITE_FILE_ID'));
+    backupSite_(file.getBlob().getDataAsString(), u);
+    file.setContent(JSON.stringify(site, null, 2));
     ensureFolders_(site);
     clearCache_();
     return { site: site };
@@ -165,6 +167,22 @@ const ACTIONS = {
   },
 
   refresh(b, u) { needAdmin_(u); clearCache_(); return { items: allItems_() }; },
+
+  /* 저장할 때마다 남는 이전 버전 (드라이브 _사이트/백업) */
+  listBackups(b, u) {
+    needAdmin_(u);
+    const out = [];
+    const it = backupFolder_().getFiles();
+    while (it.hasNext()) { const f = it.next(); out.push({ id: f.getId(), name: f.getName(), at: f.getDateCreated().toISOString() }); }
+    out.sort((x, y) => (y.at > x.at ? 1 : -1));
+    return { backups: out.slice(0, 60) };
+  },
+  getBackup(b, u) {
+    needAdmin_(u);
+    const f = DriveApp.getFileById(b.id);
+    if (f.getParents().next().getId() !== backupFolder_().getId()) throw new Error('백업 파일이 아니다');
+    return { site: JSON.parse(f.getBlob().getDataAsString()) };
+  },
 };
 
 /* ─── 로그인 확인 ─── */
@@ -190,6 +208,21 @@ function needAdmin_(u) { if (!isAdmin_(u)) throw new Error('관리자만 할 수
 /* ─── 사이트 데이터 ─── */
 function readSite_() {
   return JSON.parse(DriveApp.getFileById(props.getProperty('SITE_FILE_ID')).getBlob().getDataAsString() || '{}');
+}
+
+/* ─── 백업 ─── 최근 BACKUP_KEEP 개만 남긴다 */
+const BACKUP_KEEP = 60;
+function backupFolder_() { return subFolder_(sysFolder_(), '백업'); }
+function backupSite_(json, u) {
+  if (!json || json === '{}') return;
+  const stamp = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH-mm-ss');
+  const folder = backupFolder_();
+  folder.createFile(`site ${stamp} (${u.name}).json`, json, 'application/json');
+  const files = [];
+  const it = folder.getFiles();
+  while (it.hasNext()) files.push(it.next());
+  files.sort((a, b) => b.getDateCreated() - a.getDateCreated());
+  files.slice(BACKUP_KEEP).forEach(f => f.setTrashed(true));
 }
 
 /* ─── 폴더 ─── */

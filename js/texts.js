@@ -292,3 +292,16 @@ function layersHtml(v, def) {
   return `<div class="lays${overflow ? ' ov' : ''}" aria-hidden="true">${layers.map(L =>
     `<img class="lay ${L.fit === 'free' ? 'free' : 'fill'}" src="${esc(imgUrl(L.src, 1600))}" alt="" style="${layerStyle(L)}" draggable="false">`).join('')}</div>`;
 }
+
+/* ─── 자리 옮기기 ───
+   로고·벽 문양처럼 자리가 정해진 그림을 자리마다 따로 옮긴다. site.positions[자리] = { dx, dy, s, r } (px, 배율, 도) */
+const POS_LABELS = { 'logo.home': '왼쪽 위 로고', 'logo.intro': '첫 화면 로고', 'logo.drawer': '목차 로고', 'logo.footer': '맨 아래 로고', crest: '벽 문양' };
+function posTransform(key) {
+  const p = Data.site?.positions?.[key];
+  if (!p) return '';
+  const n = (v, d) => (Number.isFinite(+v) ? +v : d);
+  return `translate(${n(p.dx, 0)}px, ${n(p.dy, 0)}px) rotate(${n(p.r, 0)}deg) scale(${n(p.s, 1)})`;
+}
+function applyPositions(root = document) {
+  $$('[data-pos]', root).forEach(el => { el.style.transform = posTransform(el.dataset.pos); });
+}

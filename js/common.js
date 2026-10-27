@@ -394,3 +394,24 @@ function applySiteStyle(site) {
   }).join('\n');
   window.dispatchEvent(new Event('themechange'));
 }
+
+/* ─── 백업 ─── 이 브라우저에 사이트 데이터 사본을 최근 30개까지 남긴다 */
+const Backups = {
+  max: 30,
+  list() { return store.get('backups', []); },
+  add(label, site) {
+    const json = JSON.stringify(site);
+    const list = this.list();
+    if (list[0]?.json === json) return; // 바로 앞과 같으면 또 남기지 않는다
+    list.unshift({ at: new Date().toISOString(), label, json });
+    while (list.length > this.max) list.pop();
+    try { store.set('backups', list); } catch { list.splice(10); store.set('backups', list); }
+  },
+  remove(i) { const l = this.list(); l.splice(i, 1); store.set('backups', l); },
+  download(site, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(site, null, 2)], { type: 'application/json' }));
+    a.download = name || `stellive-backup-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+    a.click();
+  },
+};

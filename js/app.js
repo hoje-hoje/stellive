@@ -154,7 +154,7 @@ function footerHtml() {
     <div class="foot-in">
       <div class="foot-top">
         <div class="foot-brand">
-          <div><img src="${esc(siteImg('logo', 200))}" alt="" data-ei="images.logo">${esc(t('brand.name'))} <i>${esc(t('brand.sub'))}</i></div>
+          <div><img src="${esc(siteImg('logo', 200))}" alt="" data-ei="images.logo" data-pos="logo.footer">${esc(t('brand.name'))} <i>${esc(t('brand.sub'))}</i></div>
           <p>${th('footer.note')}</p>
         </div>
         <nav aria-label="${esc(t('footer.archive'))}"><span class="kk">${esc(t('footer.archive'))}</span><a href="#/listen">${esc(t('nav.listen'))}</a><a href="#/group">${esc(t('nav.group'))}</a><a href="#/stars">${esc(t('nav.stars'))}</a></nav>
@@ -490,7 +490,7 @@ function renderDrawer() {
   $('#drawer').dataset.ei = 'images.drawer';
   $('#drawer').innerHTML = `
     <div class="dr-head">
-      <img src="${esc(siteImg('logo', 200))}" alt="" data-ei="images.logo">
+      <img src="${esc(siteImg('logo', 200))}" alt="" data-ei="images.logo" data-pos="logo.drawer">
       <div><b>${esc(t('brand.name'))}</b><small>${esc(t('nav.title'))}</small></div>
       <button type="button" class="icon-btn" data-drawer-close aria-label="목차 닫기">${ICON.close}</button>
     </div>
@@ -509,6 +509,7 @@ function renderDrawer() {
   $('#tbLinks').innerHTML = NAV.map(([href, , en]) => `<a href="${href}" data-href="${href}">${esc(t(en))}</a>`).join('');
   paintLogin(Auth.user);
   markNav();
+  applyPositions($('#drawer'));
 }
 
 function markNav() {
@@ -527,6 +528,7 @@ function fillTexts(root = document) {
     document.title = tRaw('meta.title');
     $('meta[name=description]')?.setAttribute('content', tRaw('meta.description'));
   }
+  applyPositions(root);
   const fav = $('link[rel=icon]');
   if (fav) fav.href = siteImg('logo', 128);
 }
@@ -606,6 +608,7 @@ function route(keepScroll) {
   else if (page === 'about') renderAbout();
   else renderNotFound();
   markNav();
+  applyPositions(view);
   Menu.closeDrawer();
   Menu.setTop(false);
   if (!keepScroll) window.scrollTo(0, 0);
