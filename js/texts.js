@@ -224,16 +224,27 @@ const TEXT_SECTIONS = [
 
 const TEXT_DEFAULT = Object.fromEntries(TEXT_SECTIONS.flatMap(s => s.items.map(([k, , v]) => [k, v])));
 
-// t('list.empty', { kind: '커버곡' })
-function t(key, vars) {
+// 편집 모드(?edit): 글자마다 보이지 않는 표시로 키를 붙여 두고, 화면에 그린 뒤 고칠 수 있는 칸으로 바꾼다
+const EDIT = new URLSearchParams(location.search).has('edit');
+const MARK = /([^]*)([^]*)/g;
+const stripMarks = s => String(s ?? '').replace(/[^]*/g, '').replace(//g, '');
+
+// 실제 글자 (관리자가 바꾼 것 → 없으면 기본값). {name} 자리를 채운다
+function tRaw(key, vars) {
   const custom = Data.site?.texts?.[key];
   let s = custom != null && custom !== '' ? custom : TEXT_DEFAULT[key] ?? key;
-  if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] ?? m));
+  if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? stripMarks(vars[k]) : m));
   return s;
+}
+// t('list.empty', { kind: '커버곡' }) — 화면에 그릴 글자
+function t(key, vars) {
+  const s = tRaw(key, vars);
+  return EDIT ? `${key}${s}` : s;
 }
 // 줄바꿈과 **굵게** 를 살린 HTML
 function th(key, vars) {
-  return esc(t(key, vars)).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+  const html = esc(tRaw(key, vars)).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+  return EDIT ? `<span class="ed-t" data-tk="${esc(key)}">${html}</span>` : html;
 }
 
 // 종류 이름(커버곡…)도 관리자 글자로 바꿀 수 있다

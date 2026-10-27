@@ -17,8 +17,8 @@ const Player = {
     this.video.addEventListener('error', () => {
       const it = this.current();
       if (!it || this.kind !== 'video' || !this.video.getAttribute('src')) return;
-      if (it.ytId && !this.tried.has('youtube')) return this.failover(t('player.driveError'));
-      if (it.driveId) { this.showFrame(it); toast(t('player.frame')); }
+      if (it.ytId && !this.tried.has('youtube')) return this.failover(tRaw('player.driveError'));
+      if (it.driveId) { this.showFrame(it); toast(tRaw('player.frame')); }
     });
 
     this.bar.addEventListener('click', e => {
@@ -64,9 +64,9 @@ const Player = {
   /* 목록 통째로 넘겨서 재생 시작 */
   play(items, startId, label) {
     const list = items.filter(i => i.playable);
-    if (!list.length) { toast(t('player.noSongs')); return; }
+    if (!list.length) { toast(tRaw('player.noSongs')); return; }
     this.queue = list;
-    this.label = label || '';
+    this.label = stripMarks(label || '');
     let i = startId ? list.findIndex(x => x.id === startId) : 0;
     if (i < 0) i = 0;
     if (this.shuffle && !startId) i = Math.floor(Math.random() * list.length);
@@ -114,10 +114,10 @@ const Player = {
     const other = this.source === 'youtube' ? 'drive' : 'youtube';
     const ok = other === 'youtube' ? !!it.ytId : it.hasDrive || !!it.directUrl;
     if (ok && !this.tried.has(other)) {
-      toast(t('player.switch', { why, to: other === 'drive' ? t('player.toDrive') : t('player.toYt') }));
+      toast(tRaw('player.switch', { why, to: other === 'drive' ? tRaw('player.toDrive') : tRaw('player.toYt') }));
       return this.playSource(it, other);
     }
-    toast(t('player.skip', { why }));
+    toast(tRaw('player.skip', { why }));
     setTimeout(() => { if (this.current() === it) this.next(true); }, 1200);
   },
 
@@ -155,7 +155,7 @@ const Player = {
   async playYT(it) {
     this.stopOthers('yt');
     try { await this.loadYT(); }
-    catch { if (this.current() === it) this.failover(t('player.ytBlocked')); return; }
+    catch { if (this.current() === it) this.failover(tRaw('player.ytBlocked')); return; }
     if (this.current() !== it) return;
     if (!this.yt) {
       this.yt = await new Promise(ok => {
@@ -169,7 +169,7 @@ const Player = {
               if (e.data === YT.PlayerState.PLAYING) this.setPlaying(true);
               if (e.data === YT.PlayerState.PAUSED) this.setPlaying(false);
             },
-            onError: () => this.failover(t('player.ytError')),
+            onError: () => this.failover(tRaw('player.ytError')),
           },
         });
       });
@@ -186,7 +186,7 @@ const Player = {
     this.stopOthers('frame');
     this.frame.src = `https://drive.google.com/file/d/${it.driveId}/preview`;
     this.setPlaying(true);
-    if (!this._warned) { this._warned = true; toast(t('player.frameNote')); }
+    if (!this._warned) { this._warned = true; toast(tRaw('player.frameNote')); }
   },
 
   stopOthers(keep) {
@@ -249,8 +249,8 @@ const Player = {
   paintPrefer() {
     const b = $('[data-p="prefer"]', this.bar);
     if (!b) return;
-    b.textContent = this.prefer === 'drive' ? t('player.preferDrive') : t('player.preferYt');
-    b.title = t('player.preferTitle');
+    b.textContent = this.prefer === 'drive' ? tRaw('player.preferDrive') : tRaw('player.preferYt');
+    b.title = tRaw('player.preferTitle');
   },
   paintSource() {
     const el = $('#pSrc');

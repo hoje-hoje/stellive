@@ -14,6 +14,10 @@ const state = { calMonth: null, calPick: null, listenKinds: new Set(['cover', 'o
 const PROFILE_TABS = ['cover', 'fanart', 'meme', 'clip', 'original', 'album'];
 
 /* ─── 공통 조각 ─── */
+// 편집 모드에서 멤버·기수 정보(이름, 소개…)를 그 자리에서 고칠 수 있게 표시한다
+const ef = (path, value, ph = '') => EDIT
+  ? `<span class="ed-t" data-field="${esc(path)}" data-ph="${esc(ph)}">${esc(value || '')}</span>`
+  : esc(value || '');
 const pad2 = n => String(n).padStart(2, '0');
 const memberNames = it => it.members.map(id => Data.member(id)?.name).filter(Boolean);
 const canDelete = it => Auth.user && it.byEmail && Auth.user.email === it.byEmail;
@@ -96,7 +100,7 @@ function renderHome() {
   const songs = Data.items.filter(i => KIND[i.kind]?.music).length;
   const others = Data.items.length - songs;
   view.innerHTML = `
-    <section class="banner ${bimg ? 'has-img' : ''}" ${bimg ? `style="background-image:url('${esc(bimg)}')"` : ''}>
+    <section class="banner ${bimg ? 'has-img' : ''}" data-ei="banner.image" ${bimg ? `style="background-image:url('${esc(bimg)}')"` : ''}>
       <div class="bn-in">
         <div class="bn-t">
           <span class="sc">${esc(t('home.kicker'))}</span>
@@ -106,7 +110,7 @@ function renderHome() {
         <div class="bn-stats">
           <div><b>${songs}</b><small>${esc(t('home.songs'))}</small></div>
           <div><b>${others}</b><small>${esc(t('home.others'))}</small></div>
-          ${s.fanCafe ? `<a class="cafe" href="${esc(s.fanCafe)}" target="_blank" rel="noopener" aria-label="${esc(t('home.cafe'))}" title="${esc(t('home.cafe'))}"><img src="${esc(siteImg('cafe', 200))}" alt=""></a>` : ''}
+          ${s.fanCafe ? `<a class="cafe" href="${esc(s.fanCafe)}" target="_blank" rel="noopener" aria-label="${esc(t('home.cafe'))}" title="${esc(t('home.cafe'))}"><img src="${esc(siteImg('cafe', 200))}" alt="" data-ei="images.cafe"></a>` : ''}
         </div>
       </div>
     </section>
@@ -117,7 +121,7 @@ function renderHome() {
       const ms = active().filter(m => m.group === g.id);
       if (!ms.length) return '';
       return `<section class="gen" style="--g:${esc(g.color)}">
-        <div class="gen-h"><b>${genNo(g)}</b><i class="it">${esc(g.name)}</i><span>${esc(g.label)}</span></div>
+        <div class="gen-h"><b>${genNo(g)}</b><i class="it">${ef(`groups.${s.groups.indexOf(g)}.name`, g.name)}</i><span>${ef(`groups.${s.groups.indexOf(g)}.label`, g.label)}</span></div>
         <div class="gen-cards">${ms.map(m => memberCard(m)).join('')}</div>
       </section>`;
     }).join('')}
@@ -133,22 +137,22 @@ function renderHome() {
 function memberCard(m, grad) {
   const img = imgUrl(m.avatar, 500);
   return `<div class="mcard ${grad ? 'grad' : ''}" style="--c:${esc(m.color)}">
-    <a class="mc-img ${img ? 'has-img' : ''}" href="#/m/${esc(m.id)}" aria-label="${esc(m.name)} 프로필">
+    <a class="mc-img ${img ? 'has-img' : ''}" data-ei="members.${Data.site.members.indexOf(m)}.avatar" href="#/m/${esc(m.id)}" aria-label="${esc(m.name)} 프로필">
       ${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : `<span class="mc-ini">${esc(m.name.slice(0, 1))}</span>`}
       <span class="mc-en">${esc((m.en || '').toUpperCase())}</span>
     </a>
-    <a class="mc-cap" href="#/m/${esc(m.id)}"><b>${esc(m.name)}</b><i>${esc(m.en || '')}</i></a>
+    <a class="mc-cap" href="#/m/${esc(m.id)}"><b>${ef(`members.${Data.site.members.indexOf(m)}.name`, m.name)}</b><i>${ef(`members.${Data.site.members.indexOf(m)}.en`, m.en)}</i></a>
     ${grad ? '' : `<div class="mc-links">${linkBtns(m)}</div>`}
   </div>`;
 }
 
 function footerHtml() {
   const fbg = siteImg('footer');
-  return `<footer class="foot" ${fbg ? `style="background-image:linear-gradient(color-mix(in srgb, var(--wall) 82%, transparent), color-mix(in srgb, var(--wall) 82%, transparent)), url('${esc(fbg)}');background-size:cover;background-position:center"` : ''}>
+  return `<footer class="foot" data-ei="images.footer" ${fbg ? `style="background-image:linear-gradient(color-mix(in srgb, var(--wall) 82%, transparent), color-mix(in srgb, var(--wall) 82%, transparent)), url('${esc(fbg)}');background-size:cover;background-position:center"` : ''}>
     <div class="foot-in">
       <div class="foot-top">
         <div class="foot-brand">
-          <div><img src="${esc(siteImg('logo', 200))}" alt="">${esc(t('brand.name'))} <i>${esc(t('brand.sub'))}</i></div>
+          <div><img src="${esc(siteImg('logo', 200))}" alt="" data-ei="images.logo">${esc(t('brand.name'))} <i>${esc(t('brand.sub'))}</i></div>
           <p>${th('footer.note')}</p>
         </div>
         <nav aria-label="${esc(t('footer.archive'))}"><span class="kk">${esc(t('footer.archive'))}</span><a href="#/listen">${esc(t('nav.listen'))}</a><a href="#/group">${esc(t('nav.group'))}</a><a href="#/stars">${esc(t('nav.stars'))}</a></nav>
@@ -166,7 +170,7 @@ function footerHtml() {
 
 /* ─── 캘린더 ─── */
 const eventType = type => t('event.' + (['birthday', 'debut', 'event', 'broadcast', 'release', 'etc'].includes(type) ? type : 'event'));
-const listOf = key => t(key).split(',').map(x => x.trim());
+const listOf = key => tRaw(key).split(',').map(x => x.trim());
 
 function eventsOn(y, mo, d) {
   const iso = `${y}-${pad2(mo + 1)}-${pad2(d)}`, md = iso.slice(5), out = [];
@@ -242,6 +246,7 @@ function renderMember(id, tab) {
   tab = PROFILE_TABS.includes(tab) ? tab : 'cover';
   const items = Data.forMember(id, tab);
   const art = imgUrl(m.art || m.avatar, 1200);
+  const mi = Data.site.members.indexOf(m), mp = `members.${mi}`;
   const family = ((m.enFull || m.en || m.name).split(' ')[0] || '').toUpperCase();
   const bd = m.birthday ? m.birthday.slice(-5).split('-').map(Number) : null;
   const fanarts = Data.forMember(id, 'fanart').slice(0, 4);
@@ -257,18 +262,18 @@ function renderMember(id, tab) {
     <article class="pf-card" style="--c:${esc(m.color)}">
       <div class="pf-left">
         <div class="pf-strip" aria-hidden="true"><span>${esc(family)}</span></div>
-        <div class="pf-art" ${m.artBg || siteImg('profileBg') ? `style="background:url('${esc(imgUrl(m.artBg, 1600) || siteImg('profileBg'))}') center / cover"` : ''}>
+        <div class="pf-art" data-ei="${mp}.art" ${m.artBg || siteImg('profileBg') ? `style="background:url('${esc(imgUrl(m.artBg, 1600) || siteImg('profileBg'))}') center / cover"` : ''}>
           ${art ? `<img src="${esc(art)}" alt="${esc(m.name)}">` : `<span class="ph" aria-hidden="true">${esc(m.name.slice(0, 1))}</span>`}
           <span class="ci" aria-hidden="true">${th('profile.ci')}</span>
         </div>
       </div>
       <div class="pf-right">
         <div>
-          <h1 class="pf-name">${esc(m.en || m.name)}</h1>
+          <h1 class="pf-name">${EDIT ? ef(`${mp}.en`, m.en, 'English name') : esc(m.en || m.name)}</h1>
           <div class="pf-unit"><i>${esc(t('profile.unitLine', { unit: m.graduated ? t('profile.gradUnit') : g?.name || '' }))}</i></div>
         </div>
         <div class="pf-ko">
-          <b>${esc(m.fullName || m.name)}</b>
+          <b>${EDIT ? ef(`${mp}.fullName`, m.fullName, '풀네임') : esc(m.fullName || m.name)}</b>
           <span class="sw" aria-hidden="true"><span style="background:var(--c)"></span><span style="background:color-mix(in srgb, var(--c) 55%, #6d6fd8)"></span><span style="background:color-mix(in srgb, var(--c) 30%, #2b2b78)"></span></span>
         </div>
         <div class="tags">
@@ -276,8 +281,8 @@ function renderMember(id, tab) {
           ${m.debut ? `<div class="tag"><span><b>${esc(t('profile.debut'))}</b>${fmtDate(m.debut).replace(/\./g, '. ')}</span></div>` : ''}
           <div class="tag"><span><b>${esc(t('profile.unit'))}</b>${m.graduated ? esc(t('profile.graduated')) : `${esc(g?.label || '')} ${esc((g?.name || '').toUpperCase())}`}</span></div>
         </div>
-        ${m.bio ? `<div class="summary"><h3>${esc(t('profile.summary'))}</h3><p>${esc(m.bio)}</p></div>` : ''}
-        ${m.quote ? `<p class="quote">“${esc(m.quote)}”</p>` : ''}
+        ${m.bio || EDIT ? `<div class="summary"><h3>${esc(t('profile.summary'))}</h3><p>${ef(`${mp}.bio`, m.bio, '소개를 쓴다')}</p></div>` : ''}
+        ${m.quote || EDIT ? `<p class="quote">“${ef(`${mp}.quote`, m.quote, '대표 한마디')}”</p>` : ''}
         <div class="pf-links">
           ${['chzzk', 'x', 'youtube'].map(k => m.links?.[k] ? `<a class="btn sm" href="${esc(m.links[k])}" target="_blank" rel="noopener">${ICON[k]} ${esc(t('link.' + k))}</a>` : '').join('')}
           <button type="button" class="btn sm solid" data-playmember="${esc(m.id)}">${ICON.play} ${esc(t('profile.playAll'))}</button>
@@ -479,9 +484,10 @@ function renderDrawer() {
     <div class="dr-gh"><b>${no}</b><i>${esc(name)}</i></div>
     <div class="dr-ms">${ms.map(m => `<a class="dr-m" href="#/m/${esc(m.id)}" data-nav="m-${esc(m.id)}" style="--c:${esc(m.color)}">${esc(m.name)}</a>`).join('')}</div>
   </div>` : '';
+  $('#drawer').dataset.ei = 'images.drawer';
   $('#drawer').innerHTML = `
     <div class="dr-head">
-      <img src="${esc(siteImg('logo', 200))}" alt="">
+      <img src="${esc(siteImg('logo', 200))}" alt="" data-ei="images.logo">
       <div><b>${esc(t('brand.name'))}</b><small>${esc(t('nav.title'))}</small></div>
       <button type="button" class="icon-btn" data-drawer-close aria-label="목차 닫기">${ICON.close}</button>
     </div>
@@ -513,11 +519,11 @@ function markNav() {
 // data-t="키" 가 붙은 곳에 글자를 채운다
 function fillTexts(root = document) {
   $$('[data-t]', root).forEach(el => { el.innerHTML = th(el.dataset.t); });
-  $$('[data-tp]', root).forEach(el => { el.placeholder = t(el.dataset.tp); });
+  $$('[data-tp]', root).forEach(el => { el.placeholder = tRaw(el.dataset.tp); });
   $$('[data-img]', root).forEach(el => { el.src = siteImg(el.dataset.img, 400); });
   if (root === document) {
-    document.title = t('meta.title');
-    $('meta[name=description]')?.setAttribute('content', t('meta.description'));
+    document.title = tRaw('meta.title');
+    $('meta[name=description]')?.setAttribute('content', tRaw('meta.description'));
   }
   const fav = $('link[rel=icon]');
   if (fav) fav.href = siteImg('logo', 128);
@@ -643,7 +649,7 @@ document.addEventListener('click', e => {
     if (mode === 'random') { Player.shuffle = true; Player.paintModes(); Player.play(music, null, t('listen.random')); }
     if (mode === 'stars') {
       const favs = music.filter(i => Favs.has(i.id));
-      if (!favs.length) return toast(t('stars.none'));
+      if (!favs.length) return toast(tRaw('stars.none'));
       Player.play(favs, null, t('listen.stars'));
     }
     if (mode === 'newest') { Player.shuffle = false; Player.paintModes(); Player.play(music, null, t('listen.newest')); }
@@ -684,6 +690,7 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('keydown', e => {
+  if (document.activeElement?.isContentEditable) return;
   if (Intro.isOpen()) { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); Intro.hide(); } return; }
   if (e.key === 'Escape') { closeModals(); Menu.closeDrawer(); Menu.setTop(false); }
   if (e.key === ' ' && !Player.bar.hidden && !/INPUT|TEXTAREA|SELECT|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); Player.toggle(); }
@@ -744,7 +751,7 @@ function openUpload(pre = {}) {
   ['#upTitle', '#upUrl', '#upAlt', '#upFile'].forEach(s => ($(s).value = ''));
   $('#upStatus').textContent = '';
   fillTexts($('#upload'));
-  $('#upHint').textContent = !LIVE ? t('upload.demo') : Auth.user ? t('upload.as', { name: Auth.user.name }) : t('upload.login');
+  $('#upHint').textContent = !LIVE ? tRaw('upload.demo') : Auth.user ? tRaw('upload.as', { name: Auth.user.name }) : tRaw('upload.login');
   $('#upload').hidden = false;
 }
 
@@ -755,7 +762,7 @@ $('#upload').addEventListener('click', e => {
 });
 $('#upFile').addEventListener('change', () => {
   const f = $('#upFile').files[0];
-  $('.drop-txt').textContent = f ? `${f.name} · ${(f.size / 1048576).toFixed(1)}MB` : t('upload.drop');
+  $('.drop-txt').textContent = f ? `${f.name} · ${(f.size / 1048576).toFixed(1)}MB` : tRaw('upload.drop');
   if (f && !$('#upTitle').value) $('#upTitle').value = f.name.replace(/\.[^.]+$/, '');
 });
 
@@ -764,34 +771,34 @@ $('#upload form').addEventListener('submit', async e => {
   const status = $('#upStatus');
   const members = [...up.members], group = $('#upGroup').value, title = $('#upTitle').value.trim();
   const url = $('#upUrl').value.trim(), alt = $('#upAlt').value.trim(), f = $('#upFile').files[0];
-  if (!members.length && !group) return (status.textContent = t('upload.errMember'));
-  if (!url && !alt && !f) return (status.textContent = t('upload.errNone'));
+  if (!members.length && !group) return (status.textContent = tRaw('upload.errMember'));
+  if (!url && !alt && !f) return (status.textContent = tRaw('upload.errNone'));
   const btn = $('#upSubmit');
   try {
     btn.disabled = true;
     let item;
     if (f) {
-      if (f.size > (CFG.maxUploadMB || 35) * 1048576) throw new Error(t('upload.errSize', { mb: CFG.maxUploadMB || 35 }));
-      if (!LIVE) throw new Error(t('upload.errDemo'));
-      status.textContent = t('upload.reading');
+      if (f.size > (CFG.maxUploadMB || 35) * 1048576) throw new Error(tRaw('upload.errSize', { mb: CFG.maxUploadMB || 35 }));
+      if (!LIVE) throw new Error(tRaw('upload.errDemo'));
+      status.textContent = tRaw('upload.reading');
       const data = await fileToBase64(f);
-      status.textContent = t('upload.uploading');
+      status.textContent = tRaw('upload.uploading');
       item = (await api('upload', { kind: up.kind, title, members, group, filename: f.name, mimeType: f.type, data, url })).item;
     } else {
       const main = url || alt, second = url ? alt : '';
-      if (!/^https?:\/\//.test(main) || (second && !/^https?:\/\//.test(second))) throw new Error(t('upload.errLink'));
+      if (!/^https?:\/\//.test(main) || (second && !/^https?:\/\//.test(second))) throw new Error(tRaw('upload.errLink'));
       if (!LIVE) {
         item = { id: 'l_' + Date.now(), kind: up.kind, title: title || main, src: 'link', url: main, alt: second, members, group, by: '나', at: new Date().toISOString() };
         store.set('demoItems', [item, ...store.get('demoItems', [])]);
       } else {
-        status.textContent = t('upload.sending');
+        status.textContent = tRaw('upload.sending');
         item = (await api('addLink', { kind: up.kind, title, url: main, alt: second, members, group })).item;
       }
     }
     Data.items.unshift(enrich(item));
     store.set('cache', { site: Data.site, items: Data.items.map(({ _ok, ...x }) => x) });
     $('#upload').hidden = true;
-    toast(t('upload.done'));
+    toast(tRaw('upload.done'));
     route(true);
   } catch (err) {
     status.textContent = err.message;
@@ -799,12 +806,12 @@ $('#upload form').addEventListener('submit', async e => {
 });
 
 async function deleteItem(id) {
-  if (!confirm(t('upload.confirmDelete'))) return;
+  if (!confirm(tRaw('upload.confirmDelete'))) return;
   try {
     if (!LIVE) store.set('demoItems', store.get('demoItems', []).filter(x => x.id !== id));
     else await api('remove', { id });
     Data.items = Data.items.filter(i => i.id !== id);
-    toast(t('upload.deleted'));
+    toast(tRaw('upload.deleted'));
     route(true);
   } catch (e) { toast(e.message, true); }
 }
@@ -830,7 +837,7 @@ addEventListener('hashchange', () => route());
 $('#cornerDots').innerHTML = Theme.dots();
 $('#introBtn').addEventListener('click', () => Intro.show());
 $('#enterBtn').addEventListener('click', () => Intro.hide());
-$('#intro').addEventListener('wheel', e => { if (e.deltaY > 30) Intro.hide(); }, { passive: true });
+$('#intro').addEventListener('wheel', e => { if (e.deltaY > 30 && !EDIT) Intro.hide(); }, { passive: true });
 addEventListener('themechange', () => { $('#cornerDots').innerHTML = Theme.dots(); });
 
 starfield($('#sky'));
@@ -847,4 +854,4 @@ Player.setPlaying(false);
 Player.paintModes();
 Player.paintPrefer();
 Auth.init();
-Data.load().then(() => { if (!location.hash.slice(2) && Intro.shouldShow()) Intro.show(); });
+window.dataReady = Data.load().then(() => { if (!EDIT && !location.hash.slice(2) && Intro.shouldShow()) Intro.show(); });

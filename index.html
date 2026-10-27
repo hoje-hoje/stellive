@@ -20,15 +20,15 @@
 <!-- 첫 화면 (하루 한 번) -->
 <section id="intro" hidden aria-label="첫 화면">
   <div class="in-wall">
-    <div class="in-brand"><img src="assets/logo.svg" data-img="logo" alt=""><span data-t="brand.name"></span></div>
-    <img class="in-crest" id="introCrestImg" alt="" aria-hidden="true" hidden>
-    <svg class="in-crest" id="introCrestSvg" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6"><circle cx="50" cy="50" r="48"/><circle cx="50" cy="50" r="41" stroke-width=".4"/><path d="M79 21A41 41 0 1 1 21 79Z"/><path d="M30 42Q31.6 58.4 49 61 31.6 63.6 30 80 28.4 63.6 10.5 61 28.4 58.4 30 42Z"/><path d="M40.8 64Q41.6 71.9 49.5 72.8 41.6 73.7 40.8 81.6 40 73.7 32.1 72.8 40 71.9 40.8 64Z"/></g></svg>
+    <div class="in-brand"><img src="assets/logo.svg" data-img="logo" data-ei="images.logo" alt=""><span data-t="brand.name"></span></div>
+    <img class="in-crest" id="introCrestImg" alt="" aria-hidden="true" data-ei="images.crest" hidden>
+    <svg class="in-crest" id="introCrestSvg" data-ei="images.crest" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6"><circle cx="50" cy="50" r="48"/><circle cx="50" cy="50" r="41" stroke-width=".4"/><path d="M79 21A41 41 0 1 1 21 79Z"/><path d="M30 42Q31.6 58.4 49 61 31.6 63.6 30 80 28.4 63.6 10.5 61 28.4 58.4 30 42Z"/><path d="M40.8 64Q41.6 71.9 49.5 72.8 41.6 73.7 40.8 81.6 40 73.7 32.1 72.8 40 71.9 40.8 64Z"/></g></svg>
     <div class="in-foot">
       <em data-t="intro.wallEn"></em>
       <small data-t="intro.wallKo"></small>
     </div>
   </div>
-  <div class="in-sky" id="introSky"></div>
+  <div class="in-sky" id="introSky" data-ei="images.intro"></div>
   <div class="in-dots" id="introDots"></div>
   <div class="in-type">
     <span class="sc" data-t="intro.kicker"></span>
@@ -59,7 +59,7 @@
 </header>
 
 <!-- 왼쪽 위 로고: 누르면 홈 -->
-<a class="home-logo" href="#/" aria-label="홈으로"><img src="assets/logo.svg" data-img="logo" alt=""></a>
+<a class="home-logo" href="#/" aria-label="홈으로"><img src="assets/logo.svg" data-img="logo" data-ei="images.logo" alt=""></a>
 
 <div class="corner" id="corner">
   <span id="cornerDots"></span>
@@ -155,5 +155,6 @@
 <script src="js/guide.js"></script>
 <script src="js/player.js"></script>
 <script src="js/app.js"></script>
+<script src="js/edit.js"></script>
 </body>
 </html>

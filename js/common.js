@@ -27,7 +27,7 @@ const store = {
 function toast(msg, bad) {
   let t = $('#toast');
   if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.append(t); }
-  t.textContent = msg;
+  t.textContent = typeof stripMarks === 'function' ? stripMarks(msg) : msg;
   t.className = 'show' + (bad ? ' bad' : '');
   clearTimeout(toast._t);
   toast._t = setTimeout(() => (t.className = ''), 2600);
@@ -100,11 +100,24 @@ const THEMES = [
 ];
 const Theme = {
   get() { return store.get('theme', 'dark'); },
-  set(id) {
-    store.set('theme', id);
-    document.documentElement.dataset.theme = id;
-    $$('[data-theme-pick]').forEach(b => b.setAttribute('aria-pressed', b.dataset.themePick === id));
-    window.dispatchEvent(new Event('themechange'));
+  // 누른 동그라미 자리에서 새 테마가 부드러운 원으로 번지며 바뀐다 (View Transitions 지원 브라우저)
+  set(id, from) {
+    if (id === document.documentElement.dataset.theme) return;
+    const apply = () => {
+      store.set('theme', id);
+      document.documentElement.dataset.theme = id;
+      $$('[data-theme-pick]').forEach(b => b.setAttribute('aria-pressed', b.dataset.themePick === id));
+      window.dispatchEvent(new Event('themechange'));
+    };
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!document.startViewTransition || still) return apply();
+    const r = from?.getBoundingClientRect?.();
+    const x = r ? r.left + r.width / 2 : innerWidth / 2, y = r ? r.top + r.height / 2 : innerHeight / 2;
+    const root = document.documentElement.style;
+    root.setProperty('--vt-x', x + 'px');
+    root.setProperty('--vt-y', y + 'px');
+    root.setProperty('--vt-end', Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 240 + 'px');
+    document.startViewTransition(apply);
   },
   dots() {
     const cur = this.get();
@@ -115,7 +128,7 @@ const Theme = {
 document.documentElement.dataset.theme = Theme.get();
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-theme-pick]');
-  if (b) Theme.set(b.dataset.themePick);
+  if (b) Theme.set(b.dataset.themePick, b);
 });
 
 /* ─── 데이터 ─── */
@@ -239,7 +252,7 @@ const Auth = {
 
   renderButton(el) {
     if (!window.google?.accounts?.id) {
-      el.innerHTML = `<button class="btn sm" disabled title="config.js 에 googleClientId 를 넣어야 한다">${esc(typeof t === 'function' ? t('login.button') : '구글 로그인')}</button>`;
+      el.innerHTML = `<button class="btn sm" disabled title="config.js 에 googleClientId 를 넣어야 한다">${esc(typeof tRaw === 'function' ? tRaw('login.button') : '구글 로그인')}</button>`;
       return;
     }
     el.innerHTML = '';

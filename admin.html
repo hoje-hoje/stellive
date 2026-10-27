@@ -9,6 +9,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+<script>
+  // admin.html 을 그냥 열면 사이트를 보면서 고치는 편집 모드로 간다. 목록 화면은 admin.html#site 처럼 탭을 붙여 연다
+  if (!location.hash) location.replace('./?edit#/');
+</script>
 <script src="config.js"></script>
 <script src="js/common.js"></script>
 <style>
@@ -62,6 +66,7 @@
   <div class="adm-top">
     <a class="adm-brand" href="./"><img src="assets/logo.svg" alt="">STELLIVE <small>ADMIN</small></a>
     <span class="grow"></span>
+    <a class="btn sm solid" href="./?edit#/">✎ 사이트에서 보며 고치기</a>
     <span id="admDots"></span>
     <div id="login"></div>
   </div>

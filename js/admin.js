@@ -11,6 +11,7 @@ const slug = s => String(s).trim().toLowerCase().replace(/[^\w가-힣-]+/g, '-')
 
 function markDirty() {
   dirty = true;
+  store.set('editDraft', draft);
   $('#dirty').textContent = '저장 안 한 변경이 있다';
 }
 addEventListener('beforeunload', e => { if (dirty) e.preventDefault(); });
@@ -45,7 +46,7 @@ async function gate(user) {
 }
 
 function open() {
-  if (!draft) draft = clone(Data.site);
+  if (!draft) draft = store.get('editDraft') || clone(Data.site);
   applySiteStyle(draft);
   applyKindNames();
   $('#app').hidden = false;
@@ -455,6 +456,7 @@ $('#saveBtn').onclick = async () => {
     const { site } = await api('saveSite', { site: draft });
     Data.set(site, Data.items);
     store.set('cache', { site, items: Data.items.map(({ _ok, ...x }) => x) });
+    store.del('editDraft');
     dirty = false;
     $('#dirty').textContent = '';
     toast('저장했다 ✦');
