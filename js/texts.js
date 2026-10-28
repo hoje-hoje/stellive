@@ -45,6 +45,7 @@ const TEXT_SECTIONS = [
     ['cal.upcoming', '다가오는 일정', '다가오는 일정'],
     ['cal.none', '일정이 없을 때', '일정이 없다'],
     ['cal.today', '오늘 버튼', '오늘'],
+    ['cal.happy', '캘린더 생일 칸 글씨', 'Happy Birthday'],
     ['cal.big', '캘린더 페이지 큰 제목', 'Calendar'],
     ['cal.ko', '캘린더 페이지 한글 제목', '캘린더'],
     ['cal.desc', '캘린더 페이지 설명', '생일 · 데뷔 기념일 · 이벤트'],

@@ -189,6 +189,16 @@ function eventsOn(y, mo, d) {
   return out;
 }
 
+// 생일 칸: 그 멤버 프로필 사진이 오른쪽에서 번져 나오고, 색종이가 떠다니고, 아래에 Happy Birthday · 이름
+function birthdayArt(bds) {
+  const m = bds[0].member;
+  const img = m && firstSrc(m.avatar) ? imgUrl(firstSrc(m.avatar), 400) : '';
+  return `${img ? `<span class="bd-img" style="background-image:url(&quot;${esc(img)}&quot;)" aria-hidden="true"></span>` : ''}
+    <span class="bd-conf" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+    <i class="bd-sp" aria-hidden="true">${ICON.sparkle}</i>
+    <span class="bd-cap"><em>${esc(t('cal.happy'))}</em><b>${bds.map(b => esc(b.member?.name || '')).join(' · ')}</b></span>`;
+}
+
 function calendarHtml(big) {
   const now = new Date();
   const [y, mo] = state.calMonth || [now.getFullYear(), now.getMonth()];
@@ -201,10 +211,10 @@ function calendarHtml(big) {
     // 생일인 날은 그 멤버 색으로 칸을 물들이고, 프로필 사진과 반짝이를 올린다
     const bd = ev.find(e => e.type === 'birthday');
     cells += `<button type="button" class="cd ${todayKey === key ? 'today' : ''} ${state.calPick === key ? 'pick' : ''} ${bd ? 'bday' : ''}" ${bd ? `style="--c:${esc(bd.color || 'var(--accent)')}"` : ''} data-day="${key}" aria-label="${mo + 1}월 ${d}일${ev.length ? ' 일정 ' + ev.length + '개' : ''}">
+      ${bd ? birthdayArt(ev.filter(e => e.type === 'birthday')) : ''}
       <span class="n">${d}</span>
-      ${bd ? `<span class="bd-av">${avatarHtml(bd.member, 'av')}</span><i class="bd-sp" aria-hidden="true">${ICON.sparkle}</i>` : ''}
-      ${ev.slice(0, 2).map(e => `<span class="ev ${e.type === 'birthday' ? 'ev-bd' : ''}" ${e.color ? `style="--c:${esc(e.color)}"` : ''}>${e.type === 'birthday' ? '🎂 ' : ''}${esc(e.title)}</span>`).join('')}
-      ${ev.length > 2 ? `<span class="ev more">+${ev.length - 2}</span>` : ''}
+      ${(bd ? ev.filter(e => e.type !== 'birthday') : ev).slice(0, 2).map(e => `<span class="ev" ${e.color ? `style="--c:${esc(e.color)}"` : ''}>${esc(e.title)}</span>`).join('')}
+      ${(bd ? ev.filter(e => e.type !== 'birthday').length : ev.length) > 2 ? `<span class="ev more">+${ev.length - 2}</span>` : ''}
     </button>`;
   }
   let list = [];
