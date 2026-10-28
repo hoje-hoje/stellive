@@ -400,7 +400,9 @@ input, select, textarea { font: inherit; color: inherit; }
 .song:hover { background: linear-gradient(90deg, var(--today), transparent); }
 .song.now .s-t b { color: var(--accent); }
 .s-n { font-family: var(--bodoni); font-size: 30px; width: 52px; color: var(--dim); flex: none; }
-.s-th { width: 112px; height: 63px; flex: none; background: var(--tile) center / cover; position: relative; }
+.s-th { width: 112px; height: 63px; flex: none; background: var(--tile) center / cover; position: relative; overflow: hidden; }
+.s-th img, .c-th img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.s-th .s-ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dim); font-size: 22px; font-weight: 400; }
 .s-th i { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.4); color: #fff; opacity: 0; transition: opacity .15s; font-size: 20px; }
 .song:hover .s-th i { opacity: 1; }
 .s-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -422,7 +424,7 @@ input, select, textarea { font: inherit; color: inherit; }
 /* 클립 · 팬아트 */
 .clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
 .clip { cursor: pointer; display: flex; flex-direction: column; gap: 10px; position: relative; }
-.c-th { aspect-ratio: 16 / 9; background: var(--tile) center / cover; position: relative; display: grid; place-items: center; color: var(--dim); font-size: 30px; transition: transform .3s; }
+.c-th { aspect-ratio: 16 / 9; background: var(--tile) center / cover; position: relative; overflow: hidden; display: grid; place-items: center; color: var(--dim); font-size: 30px; transition: transform .3s; }
 .clip:hover .c-th { transform: translateY(-4px); }
 .c-meta b { font-family: var(--batang); font-size: 17px; font-weight: 400; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-meta small { font-size: 12px; color: var(--dim); }
@@ -537,6 +539,16 @@ body.has-player #stage { display: block; }
 .stage-body > * { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
 #ytWrap iframe { width: 100%; height: 100%; }
 #stage[data-kind="yt"] #ytWrap, #stage[data-kind="video"] video, #stage[data-kind="frame"] iframe { display: block; }
+/* mp3 는 검은 화면 대신 표지 */
+#stage[data-kind="video"][data-audio="1"] .stage-cover { display: grid; }
+.stage-cover { place-items: center; overflow: hidden; background: #0d0c2b; pointer-events: none; }
+.stage-cover .sc-bg { position: absolute; inset: -20%; background: center / cover; filter: blur(40px) saturate(1.3); opacity: .55; }
+.stage-cover .sc-in { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4%; width: 80%; text-align: center; color: #fff; }
+.stage-cover .sc-av { width: 34%; aspect-ratio: 1; border-radius: 50%; background: #2a2860 center / cover; box-shadow: 0 0 0 1px rgba(255,255,255,.35), 0 10px 40px rgba(0,0,0,.4); animation: sc-spin 24s linear infinite; }
+.stage-cover .sc-t { font-family: var(--batang); font-size: clamp(11px, 3cqw, 26px); line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.stage-body { container-type: inline-size; }
+@keyframes sc-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .stage-cover .sc-av { animation: none; } }
 
 #stage[data-view="page"] { position: absolute; right: auto; bottom: auto; z-index: 40; border: 0; transition: none; box-shadow: none; }
 #stage[data-view="page"] .stage-bar { display: none; }

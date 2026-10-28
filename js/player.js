@@ -124,6 +124,10 @@ const Player = {
 
   playSource(it, src) {
     this.tried.add(src);
+    const audio = src === 'drive' && it.media === 'audio';
+    this.stage.dataset.audio = audio ? '1' : '';
+    if (audio) $('.stage-cover', this.stage).innerHTML = `<span class="sc-bg" style="background-image:url(&quot;${esc(it.thumb || '')}&quot;)"></span>
+      <span class="sc-in"><span class="sc-av" style="background-color:${esc(Data.member(it.members[0])?.color || '#2a2860')};background-image:url(&quot;${esc(it.thumb || '')}&quot;)"></span><span class="sc-t">${esc(it.title || '')}</span></span>`;
     this.source = src;
     this.paintSource();
     $$('[data-np-src]').forEach(el => (el.textContent = src === 'youtube' ? 'YouTube' : 'Drive'));

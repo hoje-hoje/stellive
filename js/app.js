@@ -52,7 +52,7 @@ function songList(items, label) {
   return `<ol class="songs" data-label="${esc(label || '')}">${items.map((it, i) => `
     <li class="song ${Player.current()?.id === it.id ? 'now' : ''}" data-play="${esc(it.id)}">
       <span class="s-n">${pad2(i + 1)}</span>
-      <span class="s-th" style="background-image:url('${esc(it.thumb || '')}')">${it.playable ? `<i>${ICON.play}</i>` : ''}</span>
+      <span class="s-th">${it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy" decoding="async">` : `<b class="s-ph">♪</b>`}${it.playable ? `<i>${ICON.play}</i>` : ''}</span>
       <span class="s-t"><b>${esc(it.title)}</b><small>${esc(memberNames(it).join(' · '))}${it.group && Data.group(it.group) ? ` · ${esc(t('list.groupTag', { label: Data.group(it.group).label }))}` : it.group === 'all' ? ` · ${esc(t('list.allTag'))}` : ''}</small></span>
       <span class="srcs">${it.ytId ? `<span>${esc(t('list.srcYt'))}</span>` : ''}${it.hasDrive ? `<span>${esc(t('list.srcDrive'))}</span>` : ''}</span>
       <span class="s-x">
@@ -68,7 +68,7 @@ function clipGrid(items) {
   if (!items.length) return '';
   return `<div class="clips">${items.map(it => `
     <article class="clip" data-view-item="${esc(it.id)}">
-      <div class="c-th" style="${it.thumb ? `background-image:url('${esc(it.thumb)}')` : ''}">${it.thumb ? '' : it.link?.type === 'chzzk' ? ICON.chzzk : it.link?.type === 'x' ? ICON.x : ICON.video}</div>
+      <div class="c-th">${it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy" decoding="async">` : it.link?.type === 'chzzk' ? ICON.chzzk : it.link?.type === 'x' ? ICON.x : ICON.video}</div>
       <div class="c-meta"><b>${esc(it.title || t('list.clipTitle'))}</b><small>${esc(memberNames(it).join(' · '))}${it.by ? ` · ${esc(it.by)}` : ''}</small></div>
       <div class="c-x">${starBtn(it)}${ownBtns(it)}</div>
     </article>`).join('')}</div>`;

@@ -65,7 +65,7 @@ function parseLink(url) {
 // 노래 하나에 유튜브(ytId)와 드라이브 파일(driveId)이 둘 다 붙을 수 있다 — 플레이어가 골라서 튼다.
 function enrich(it) {
   if (it._ok) return it;
-  const driveThumb = id => `https://drive.google.com/thumbnail?id=${id}&sz=w640`;
+  const driveThumb = id => `https://drive.google.com/thumbnail?id=${id}&sz=w480`;
   const mediaKind = () => (KIND[it.kind]?.music || it.kind === 'clip' ? 'video' : '');
   if (it.src === 'drive') {
     it.driveId = it.id;
@@ -85,6 +85,12 @@ function enrich(it) {
     if (p.type === 'media') { it.media = /\.(mp3|m4a|ogg)/i.test(it.url) ? 'audio' : 'video'; it.directUrl = it.url; }
     const alt = driveId(it.alt);
     if (alt && !it.driveId) { it.driveId = alt; it.media ||= mediaKind(); it.thumb ||= driveThumb(alt); }
+  }
+  // mp3 같은 소리 파일은 드라이브 썸네일이 없으니 부른 멤버 프로필 사진을 쓴다
+  if (it.media === 'audio' && !it.ytId) {
+    const m = Data.site?.members?.find(x => x.id === it.members?.[0]);
+    const src = m && typeof firstSrc === 'function' ? firstSrc(m.avatar) : '';
+    it.thumb = src ? imgUrl(src, 480) : '';
   }
   it.hasDrive = !!(it.driveId && it.media);
   it.playable = !!(it.ytId || it.media);
