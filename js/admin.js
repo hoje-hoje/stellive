@@ -219,6 +219,9 @@ function paneMembers() {
         ${imgField('프로필 사진 (카드·동그라미)', m.avatar, `members.${i}.avatar`)}
         ${imgField('전신 일러스트 (프로필 왼쪽 큰 그림 · 배경 투명 PNG 추천)', m.art, `members.${i}.art`, 'tall')}
         ${imgField('전신 일러스트 뒤 배경 (비우면 사이트 기본 배경)', m.artBg, `members.${i}.artBg`, true)}
+        <div class="row">
+          ${[['species', '종족'], ['age', '나이'], ['mbti', 'MBTI'], ['height', '신장'], ['oshi', '오시마크'], ['fanName', '팬네임']].map(([k, l]) => `<label class="field"><span>${l}</span><input data-k="members.${i}.${k}" value="${esc(m[k] || '')}"></label>`).join('')}
+        </div>
         <label class="field"><span>소개 <em>Summary — 두세 줄이 가장 예쁘다</em></span><textarea data-k="members.${i}.bio">${esc(m.bio || '')}</textarea></label>
         <div class="row">
           <label class="field"><span>치지직</span><input type="url" data-k="members.${i}.links.chzzk" value="${esc(m.links?.chzzk || '')}" placeholder="https://chzzk.naver.com/…"></label>

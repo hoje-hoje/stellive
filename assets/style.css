@@ -404,26 +404,48 @@ body.editing .lk.off, body.editing .pf-links .off { opacity: .55; }
 .pf-nav a { min-height: 44px; display: inline-flex; align-items: center; gap: 10px; }
 .pf-nav a:hover { color: var(--fg); }
 .pf-card { display: flex; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
-.pf-left { flex: 1 1 520px; position: relative; min-height: 640px; display: flex; }
+.pf-left { flex: 1 1 440px; position: relative; min-height: min(620px, calc(100vh - 190px)); display: flex; }
 .pf-strip { width: 116px; flex: none; background: var(--c); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .pf-strip span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--bodoni); font-weight: 700; font-variation-settings: 'opsz' 10; font-size: 88px; letter-spacing: .06em; line-height: 1; color: #121238; white-space: nowrap; }
 .pf-art { flex: 1; position: relative; background: var(--sky); overflow: hidden; }
 [data-theme="dark"] .pf-art { background: radial-gradient(70% 60% at 60% 30%, color-mix(in srgb, var(--c) 35%, transparent), transparent 70%), #1b1a4e; }
 .pf-art .ph { position: absolute; inset: 40px 24px 0 -40px; display: grid; place-items: center; font-family: var(--batang); font-size: 180px; font-weight: 700; color: rgba(255,255,255,.18); }
 .pf-art .ci { position: absolute; left: 24px; bottom: 26px; font-family: var(--bodoni); font-size: 13px; letter-spacing: .4em; line-height: 1.6; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.35); }
-.pf-right { flex: 999 1 520px; min-width: 0; padding: 48px 48px 40px; display: flex; flex-direction: column; gap: 24px; }
-.pf-name { font-family: var(--bodoni); font-weight: 700; font-variation-settings: 'opsz' 10; font-size: clamp(80px, 8vw, 128px); line-height: .9; letter-spacing: .01em; text-transform: uppercase; }
-.pf-unit { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
+.pf-right { flex: 999 1 520px; min-width: 0; padding: 36px 40px 32px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; container-type: inline-size; }
+/* 정보(왼쪽)와 팬아트 2×2(오른쪽)를 나란히 — 크롬북 한 화면에 다 들어오게. 좁으면 팬아트가 아래로 4칸 */
+.pf-info { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
+.pf-right > .mini { flex: 0 1 280px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container (max-width: 640px) { .pf-right > .mini { flex-basis: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.pf-name { font-family: var(--bodoni); font-weight: 700; font-variation-settings: 'opsz' 10; font-size: clamp(60px, 5.6vw, 100px); line-height: .9; letter-spacing: .01em; text-transform: uppercase; }
+.pf-unit { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
 .pf-unit::before { content: ''; flex: 1; height: 1px; background: var(--fg); }
 .pf-unit i { font-family: var(--bodoni); font-size: 20px; }
 .pf-ko { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-.pf-ko b { font-family: var(--batang); font-size: 34px; }
+.pf-ko b { font-family: var(--batang); font-size: 28px; }
+.pf-ko .tag { margin-left: auto; }
+.pf-ko .tag b { font-family: inherit; font-size: inherit; }
+/* 정보 칸 */
+.spec { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line2); }
+.spec > div { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.spec dt { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spec dt i { font-family: var(--bodoni); font-style: italic; opacity: .8; margin-left: 2px; }
+.spec dd { font-family: var(--batang); font-size: 16px; line-height: 1.35; margin-top: 2px; overflow-wrap: anywhere; }
+.spec dd.oshi { font-size: 20px; line-height: 1.1; }
+@container (max-width: 330px) { .spec { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* 창 모드처럼 세로가 짧은 화면: 위 여백과 이름을 줄여서 한 화면에 더 들어오게 */
+@media (max-height: 760px) and (min-width: 821px) {
+  .pf-nav { margin-top: -40px; }
+  .pf-name { font-size: clamp(52px, 4.6vw, 80px); }
+  .pf-right { padding-top: 26px; padding-bottom: 24px; }
+  .pf-info { gap: 12px; }
+  .summary h3 { font-size: 19px; margin-bottom: 6px; }
+}
 .sw { display: flex; gap: 6px; }
 .sw span { width: 22px; height: 22px; }
 .tags { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .tag { display: flex; }
 .tag::before { content: ''; width: 10px; background: var(--c); }
-.tag span { padding: 7px 14px; background: var(--fg); color: var(--bg); font-size: 15px; }
+.tag span { padding: 6px 12px; background: var(--fg); color: var(--bg); font-size: 14px; white-space: nowrap; }
 .tag b { font-weight: 600; margin-right: 10px; }
 .summary h3 { display: flex; align-items: center; gap: 14px; font-family: var(--bodoni); font-weight: 400; font-size: 22px; margin-bottom: 10px; }
 .summary h3::after { content: ''; flex: 1; height: 1px; background: var(--line2); }

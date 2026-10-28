@@ -256,6 +256,16 @@ function calendarHtml(big) {
 }
 
 /* ─── 멤버 프로필 (캐릭터 인포 가로형) ─── */
+// 프로필 정보 칸: 종족 · 나이 · MBTI · 신장 · 오시마크 · 팬네임 · 생일 · 데뷔 (빈 칸은 숨긴다, 편집 모드에서는 다 보인다)
+const SPEC_FIELDS = [['species', 'Species'], ['age', 'Age'], ['mbti', 'MBTI'], ['height', 'Height'], ['oshi', 'Oshi mark'], ['fanName', 'Fan name']];
+function specHtml(m, mp, bd) {
+  const cells = SPEC_FIELDS.filter(([k]) => m[k] || EDIT).map(([k, en]) =>
+    `<div><dt>${esc(t('profile.' + k))}${k === 'mbti' ? '' : ` <i>${en}</i>`}</dt><dd class="${k === 'oshi' ? 'oshi' : ''}">${ef(`${mp}.${k}`, m[k], '—')}</dd></div>`);
+  if (bd) cells.push(`<div><dt>${esc(t('profile.birthday'))} <i>Birthday</i></dt><dd>${esc(t('profile.month', { m: bd[0], d: bd[1] }))}</dd></div>`);
+  if (m.debut) cells.push(`<div><dt>${esc(t('profile.debut'))} <i>Debut</i></dt><dd>${fmtDate(m.debut)}</dd></div>`);
+  return cells.length ? `<dl class="spec">${cells.join('')}</dl>` : '';
+}
+
 function renderMember(id, tab) {
   const m = Data.member(id);
   if (!m) return renderNotFound();
@@ -297,23 +307,22 @@ function renderMember(id, tab) {
         </div>
       </div>
       <div class="pf-right">
-        <div>
-          <h1 class="pf-name">${EDIT ? ef(`${mp}.en`, m.en, 'English name') : esc(m.en || m.name)}</h1>
-          <div class="pf-unit"><i>${esc(t('profile.unitLine', { unit: m.graduated ? t('profile.gradUnit') : g?.name || '' }))}</i></div>
-        </div>
-        <div class="pf-ko">
-          <b>${EDIT ? ef(`${mp}.fullName`, m.fullName, '풀네임') : esc(m.fullName || m.name)}</b>
-          <span class="sw" aria-hidden="true"><span style="background:var(--c)"></span><span style="background:color-mix(in srgb, var(--c) 55%, #6d6fd8)"></span><span style="background:color-mix(in srgb, var(--c) 30%, #2b2b78)"></span></span>
-        </div>
-        <div class="tags">
-          ${bd ? `<div class="tag"><span><b>${esc(t('profile.birthday'))}</b>${esc(t('profile.month', { m: bd[0], d: bd[1] }))}</span></div>` : ''}
-          ${m.debut ? `<div class="tag"><span><b>${esc(t('profile.debut'))}</b>${fmtDate(m.debut).replace(/\./g, '. ')}</span></div>` : ''}
-          <div class="tag"><span><b>${esc(t('profile.unit'))}</b>${m.graduated ? esc(t('profile.graduated')) : `${esc(g?.label || '')} ${esc((g?.name || '').toUpperCase())}`}</span></div>
-        </div>
-        ${m.bio || EDIT ? `<div class="summary"><h3>${esc(t('profile.summary'))}</h3><p>${ef(`${mp}.bio`, m.bio, '소개를 쓴다')}</p></div>` : ''}
-        <div class="pf-links">
-          ${['chzzk', 'x', 'youtube', 'namu'].map(k => { const u = k === 'namu' ? namuLink(m) : m.links?.[k]; return u || EDIT ? `<a class="btn sm ${u ? '' : 'off'}" href="${esc(u || '#')}" target="_blank" rel="noopener" data-link="${mp}.links.${k}">${ICON[k]} ${esc(stripMarks(t('link.' + k)))}</a>` : ''; }).join('')}
-          <button type="button" class="btn sm solid" data-playmember="${esc(m.id)}">${ICON.play} ${esc(t('profile.playAll'))}</button>
+        <div class="pf-info">
+          <div>
+            <h1 class="pf-name">${EDIT ? ef(`${mp}.en`, m.en, 'English name') : esc(m.en || m.name)}</h1>
+            <div class="pf-unit"><i>${esc(t('profile.unitLine', { unit: m.graduated ? t('profile.gradUnit') : g?.name || '' }))}</i></div>
+          </div>
+          <div class="pf-ko">
+            <b>${EDIT ? ef(`${mp}.fullName`, m.fullName, '풀네임') : esc(m.fullName || m.name)}</b>
+            <span class="sw" aria-hidden="true"><span style="background:var(--c)"></span><span style="background:color-mix(in srgb, var(--c) 55%, #6d6fd8)"></span><span style="background:color-mix(in srgb, var(--c) 30%, #2b2b78)"></span></span>
+            <div class="tag"><span><b>${esc(t('profile.unit'))}</b>${m.graduated ? esc(t('profile.graduated')) : `${esc(g?.label || '')} ${esc((g?.name || '').toUpperCase())}`}</span></div>
+          </div>
+          ${specHtml(m, mp, bd)}
+          ${m.bio || EDIT ? `<div class="summary"><h3>${esc(t('profile.summary'))}</h3><p>${ef(`${mp}.bio`, m.bio, '소개를 쓴다')}</p></div>` : ''}
+          <div class="pf-links">
+            ${['chzzk', 'x', 'youtube', 'namu'].map(k => { const u = k === 'namu' ? namuLink(m) : m.links?.[k]; return u || EDIT ? `<a class="btn sm ${u ? '' : 'off'}" href="${esc(u || '#')}" target="_blank" rel="noopener" data-link="${mp}.links.${k}">${ICON[k]} ${esc(stripMarks(t('link.' + k)))}</a>` : ''; }).join('')}
+            <button type="button" class="btn sm solid" data-playmember="${esc(m.id)}">${ICON.play} ${esc(t('profile.playAll'))}</button>
+          </div>
         </div>
         <div class="mini">
           ${[0, 1, 2, 3].map(n => fanarts[n]
