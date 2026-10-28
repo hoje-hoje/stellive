@@ -817,3 +817,19 @@ body.pos-editing .pos-target { outline: 3px solid #f0b446 !important; outline-of
 #backupWin .bk-list li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); }
 #backupWin .bk-list li > span { flex: 1; display: flex; flex-direction: column; }
 #backupWin .bk-list small { color: var(--dim); font-size: 12px; }
+
+/* ══ 터치 기기 (패드·폰) — 마우스가 있는 컴퓨터·크롬북에는 적용되지 않는다 ══ */
+/* 끌어서 옮기는 동안 화면이 같이 스크롤되지 않게 */
+body.lay-editing .lay-target, body.pos-editing .pos-target, .lp-h { touch-action: none; }
+@media (hover: none) {
+  /* 마우스를 올려야 보이던 것들은 항상 보이게 */
+  .art figcaption { opacity: 1; }
+  .stage-bar { opacity: 1; }
+  .song .playc { background: transparent; }
+  /* 편집 막대는 두 줄로 화면을 가리지 않게 한 줄로 두고 옆으로 밀어 본다 */
+  #editbar { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
+  #editbar > * { flex: none; }
+  /* 편집 판의 끌기 줄을 손가락으로 잡기 쉽게 */
+  .lp-h { padding-top: 16px; padding-bottom: 14px; }
+  #laypanel input[type="range"] { height: 32px; }
+}
