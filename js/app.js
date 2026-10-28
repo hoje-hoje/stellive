@@ -8,7 +8,7 @@
    #/about         소개 · 2차 창작 가이드라인 */
 
 const view = $('#view');
-const state = { calMonth: null, calPick: null, listenKinds: new Set(['cover', 'original', 'album']), search: '', guideOpen: 1, feedWho: { shorts: '', clips: '' } };
+const state = { calMonth: null, calPick: null, listenKinds: new Set(['cover', 'original', 'album']), search: '', guideOpen: 1, feedWho: { shorts: '' }, feedType: '' };
 
 // 프로필 탭 순서는 홈/단체와 다르다 (팬아트·짤을 앞으로)
 const PROFILE_TABS = ['cover', 'fanart', 'meme', 'clip', 'shorts', 'original', 'album'];
@@ -69,7 +69,7 @@ function songList(items, label) {
 function clipGrid(items, who = '') {
   if (!items.length) return '';
   return `<div class="clips">${items.map(it => `
-    <article class="clip" ${feedPlayable(it) ? `data-feedwho="clips:${esc(who)}" data-go="#/clips/${esc(it.id)}"` : `data-view-item="${esc(it.id)}"`}>
+    <article class="clip" ${feedPlayable(it) ? `data-feedwho="shorts:${esc(who)}" data-go="#/shorts/${esc(it.id)}"` : `data-view-item="${esc(it.id)}"`}>
       <div class="c-th">${it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy" decoding="async">` : it.link?.type === 'chzzk' ? ICON.chzzk : it.link?.type === 'x' ? ICON.x : ICON.video}</div>
       <div class="c-meta"><b>${esc(it.title || t('list.clipTitle'))}</b><small>${esc(memberNames(it).join(' · '))}${it.by ? ` · ${esc(it.by)}` : ''}</small></div>
       <div class="c-x">${starBtn(it)}${ownBtns(it)}</div>
@@ -101,9 +101,9 @@ function itemsBlock(kind, items, label, ctx = {}) {
 /* ─── 쇼츠 · 클립 피드 ───
    영상이 한 화면에 하나씩. 스크롤 · 스와이프 · ↑↓ 로 넘기고, 화면에 들어온 것만 튼다.
    쇼츠는 세로(9:16), 클립(2~3분짜리)은 가로(16:9) */
+// 쇼츠 화면 하나에 쇼츠(세로)와 클립(가로)을 같이 둔다
 const FEEDS = {
-  shorts: { kind: 'shorts', big: 'shorts.big', vertical: true },
-  clips: { kind: 'clip', big: 'clips.big', vertical: false },
+  shorts: { kinds: ['shorts', 'clip'], big: 'shorts.big' },
 };
 const ytVert = id => `https://i.ytimg.com/vi/${id}/oardefault.jpg`;
 const ytWide = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
@@ -121,13 +121,14 @@ function shortsGrid(items, who) {
     ${shortThumb(it)}<span class="sh-tt">${esc(it.title || '')}</span></a>`).join('')}</div>`;
 }
 function feedList(f) {
-  const who = state.feedWho[f];
-  return Data.items.filter(i => i.kind === FEEDS[f].kind && feedPlayable(i) && (!who || i.members.includes(who)))
+  const who = state.feedWho[f], type = state.feedType;
+  return Data.items.filter(i => FEEDS[f].kinds.includes(i.kind) && feedPlayable(i) && (!type || i.kind === type) && (!who || i.members.includes(who)))
     .sort((a, b) => (b.at > a.at ? 1 : -1));
 }
 function renderFeed(f, startId) {
   const F = FEEDS[f];
-  const all = Data.items.filter(i => i.kind === F.kind && feedPlayable(i));
+  const all = Data.items.filter(i => F.kinds.includes(i.kind) && feedPlayable(i));
+  const nType = k => all.filter(i => i.kind === k).length;
   const who = Data.site.members.filter(m => all.some(i => i.members.includes(m.id)));
   if (state.feedWho[f] && !who.some(m => m.id === state.feedWho[f])) state.feedWho[f] = '';
   const cur = state.feedWho[f];
@@ -136,17 +137,20 @@ function renderFeed(f, startId) {
     <header class="sh-top">
       <span class="big">${esc(t(F.big))}</span>
       <div class="sh-chips">
-        <button type="button" class="chip ${cur ? '' : 'on'}" data-feedfilter="${f}:">${esc(t('shorts.all'))} <small>${all.length}</small></button>
+        <button type="button" class="chip ${cur || state.feedType ? '' : 'on'}" data-feedfilter="${f}:">${esc(t('shorts.all'))} <small>${all.length}</small></button>
+        ${['shorts', 'clip'].map(k => `<button type="button" class="chip ${state.feedType === k ? 'on' : ''}" data-feedtype="${k}">${esc(KIND[k].name)} <small>${nType(k)}</small></button>`).join('')}
+        <span class="sh-sep" aria-hidden="true"></span>
         ${who.map(m => `<button type="button" class="chip ${cur === m.id ? 'on' : ''}" data-feedfilter="${f}:${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}${esc(m.name)}</button>`).join('')}
       </div>
-      <button type="button" class="btn sm solid" data-upload='${esc(JSON.stringify({ kind: F.kind, members: cur ? [cur] : [] }))}'>${esc(t('list.add', { kind: KIND[F.kind].name }))}</button>
+      <button type="button" class="btn sm solid" data-upload='${esc(JSON.stringify({ kind: state.feedType || 'shorts', members: cur ? [cur] : [] }))}'>${esc(t('shorts.upload'))}</button>
     </header>
-    ${list.length ? `<div class="sh-feed ${F.vertical ? '' : 'wide'}" id="shFeed" data-feed="${f}">${list.map(it => {
+    ${list.length ? `<div class="sh-feed" id="shFeed" data-feed="${f}">${list.map(it => {
       const ms = it.members.map(id => Data.member(id)).filter(Boolean);
       const fav = Favs.has(it.id);
-      return `<section class="sh-item" data-sh="${esc(it.id)}">
+      const vertical = it.kind === 'shorts';
+      return `<section class="sh-item ${vertical ? '' : 'wide'}" data-sh="${esc(it.id)}">
         <div class="sh-card" style="--c:${esc(ms[0]?.color || 'var(--accent)')}">
-          <div class="sh-media">${shortThumb(it, F.vertical)}<div class="sh-play" aria-hidden="true">${ICON.play}</div></div>
+          <div class="sh-media">${shortThumb(it, vertical)}<div class="sh-play" aria-hidden="true">${ICON.play}</div></div>
           <div class="sh-info">
             <div class="sh-who">${ms.map(m => `<a href="#/m/${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}<b>${esc(m.name)}</b></a>`).join('')}</div>
             <p>${esc(it.title || '')}</p>
@@ -157,13 +161,13 @@ function renderFeed(f, startId) {
           <button type="button" class="star ${fav ? 'on' : ''}" data-fav="${esc(it.id)}" aria-pressed="${fav}" aria-label="${esc(t('list.star'))}">${fav ? ICON.star : ICON.starO}</button>
           <button type="button" class="icon-btn sh-cm" data-cm="${esc(it.id)}" aria-label="${esc(t('cm.title'))}" title="${esc(t('cm.title'))}">${ICON.comment}<small data-cmcount="${esc(it.id)}">${Comments.counts[it.id] || ''}</small></button>
           <a class="icon-btn" href="${esc(it.open || it.url)}" target="_blank" rel="noopener" aria-label="${esc(t('list.open'))}" title="${esc(t('list.open'))}">${ICON.ext}</a>
-          <button type="button" class="icon-btn" data-shcopy="${f}/${esc(it.id)}" aria-label="${esc(t('shorts.copy'))}" title="${esc(t('shorts.copy'))}">${ICON.copy}</button>
+          <button type="button" class="icon-btn" data-shcopy="shorts/${esc(it.id)}" aria-label="${esc(t('shorts.copy'))}" title="${esc(t('shorts.copy'))}">${ICON.copy}</button>
           ${ownBtns(it).replace(/icon-btn sm/g, 'icon-btn')}
         </div>
       </section>`;
     }).join('')}</div>
     <div class="sh-nav"><button type="button" class="icon-btn" data-shnav="-1" aria-label="이전">${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 15l7-7 7 7')}</button><button type="button" class="icon-btn" data-shnav="1" aria-label="다음">${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 9l7 7 7-7')}</button></div>`
-    : emptyBox(esc(t(f === 'shorts' ? 'shorts.empty' : 'clips.empty')), F.kind, cur ? [cur] : [])}`;
+    : emptyBox(esc(t('shorts.empty')), state.feedType || 'shorts', cur ? [cur] : [])}`;
   Feed.start(f, startId);
   Comments.loadCounts();
 }
@@ -181,7 +185,7 @@ const Feed = {
     $$('.sh-item', feed).forEach(el => this.io.observe(el));
   },
   live(it) {
-    const loop = this.f === 'shorts';
+    const loop = it.kind === 'shorts'; // 쇼츠는 반복, 클립은 한 번
     if (it.hasDrive && (!it.ytId || Player.prefer === 'drive')) return `<video class="sh-live" src="${esc(Player.fileUrl(it))}" autoplay ${loop ? 'loop' : ''} playsinline controls></video>`;
     if (it.ytId) return `<iframe class="sh-live" src="https://www.youtube.com/embed/${esc(it.ytId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1${loop ? `&loop=1&playlist=${esc(it.ytId)}` : ''}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="${esc(it.title || '')}"></iframe>`;
     if (it.link?.type === 'chzzk') return `<iframe class="sh-live" src="https://chzzk.naver.com/embed/clip/${esc(it.link.id)}" allow="autoplay; fullscreen" allowfullscreen title="${esc(it.title || '')}"></iframe>`;
@@ -196,7 +200,7 @@ const Feed = {
     if (!it) return;
     if (Player.playing) Player.toggle(false); // 노래는 잠깐 멈춘다
     $('.sh-media', sec).insertAdjacentHTML('beforeend', this.live(it));
-    history.replaceState(null, '', `#/${this.f}/${it.id}`);
+    history.replaceState(null, '', `#/shorts/${it.id}`);
     if (Comments.openId) Comments.open(it.id); // 댓글 창이 열려 있으면 지금 영상 것으로
   },
   unmount(sec) { $$('.sh-live', sec).forEach(el => el.remove()); },
@@ -393,7 +397,7 @@ function footerHtml() {
           <div><img src="${esc(siteImg('logo', 200))}" alt="" data-ei="images.logo" data-pos="logo.footer">${esc(t('brand.name'))} <i>${esc(t('brand.sub'))}</i></div>
           <p>${th('footer.note')}</p>
         </div>
-        <nav aria-label="${esc(t('footer.archive'))}"><span class="kk">${esc(t('footer.archive'))}</span><a href="#/listen">${esc(t('nav.listen'))}</a><a href="#/shorts">${esc(t('nav.shorts'))}</a><a href="#/clips">${esc(t('nav.clips'))}</a><a href="#/group">${esc(t('nav.group'))}</a><a href="#/stars">${esc(t('nav.stars'))}</a></nav>
+        <nav aria-label="${esc(t('footer.archive'))}"><span class="kk">${esc(t('footer.archive'))}</span><a href="#/listen">${esc(t('nav.listen'))}</a><a href="#/shorts">${esc(t('nav.shorts'))}</a><a href="#/group">${esc(t('nav.group'))}</a><a href="#/stars">${esc(t('nav.stars'))}</a></nav>
         <nav aria-label="${esc(t('footer.contribute'))}"><span class="kk">${esc(t('footer.contribute'))}</span><a href="#" data-upload="{}">${esc(t('upload.title'))}</a><a href="#/about">About · ${esc(t('nav.about'))}</a><a href="admin.html">${esc(t('footer.admin'))}</a><a href="privacy.html">${esc(t('footer.privacy'))}</a></nav>
         <nav aria-label="${esc(t('footer.official'))}"><span class="kk">${esc(t('footer.official'))}</span><a href="https://stellive.me" target="_blank" rel="noopener">${esc(t('footer.officialSite'))}</a></nav>
       </div>
@@ -854,7 +858,7 @@ function renderAbout() {
 
 /* ─── 목차 ─── */
 const NAV = [
-  ['#/', 'nav.home', 'nav.homeEn'], ['#/calendar', 'nav.calendar', 'nav.calendarEn'], ['#/listen', 'nav.listen', 'nav.listenEn'], ['#/shorts', 'nav.shorts', 'nav.shortsEn'], ['#/clips', 'nav.clips', 'nav.clipsEn'],
+  ['#/', 'nav.home', 'nav.homeEn'], ['#/calendar', 'nav.calendar', 'nav.calendarEn'], ['#/listen', 'nav.listen', 'nav.listenEn'], ['#/shorts', 'nav.shorts', 'nav.shortsEn'],
   ['#/group', 'nav.group', 'nav.groupEn'], ['#/stars', 'nav.stars', 'nav.starsEn'], ['#/about', 'nav.about', 'nav.aboutEn'],
 ];
 function renderDrawer() {
@@ -1000,7 +1004,7 @@ function route(keepScroll) {
   else if (page === 'stars') renderStars();
   else if (page === 'about') renderAbout();
   else if (page === 'play') renderPlay();
-  else if (page === 'shorts' || page === 'clips') renderFeed(page, decodeURIComponent(a || ''));
+  else if (page === 'shorts' || page === 'clips') renderFeed('shorts', decodeURIComponent(a || '')); // 예전 #/clips 주소도 여기로
   else renderNotFound();
   ensureFoot();
   if (page === 'play' && $('#npSlot')) Player.enterPage($('#npSlot'));
@@ -1100,9 +1104,10 @@ document.addEventListener('click', e => {
     $('#cal').innerHTML = calendarHtml(location.hash.startsWith('#/calendar'));
     return;
   }
-  if ((el = tg.closest('[data-feedfilter]'))) { const [f, w] = el.dataset.feedfilter.split(':'); state.feedWho[f] = w; renderFeed(f); ensureFoot(); return; }
+  if ((el = tg.closest('[data-feedfilter]'))) { const [f, w] = el.dataset.feedfilter.split(':'); state.feedWho[f] = w; if (!w) state.feedType = ''; renderFeed(f); ensureFoot(); return; }
+  if ((el = tg.closest('[data-feedtype]'))) { state.feedType = state.feedType === el.dataset.feedtype ? '' : el.dataset.feedtype; renderFeed('shorts'); ensureFoot(); return; }
   if ((el = tg.closest('[data-shnav]'))) { Feed.step(+el.dataset.shnav); return; }
-  if ((el = tg.closest('[data-feedwho]'))) { const [f, w] = el.dataset.feedwho.split(':'); state.feedWho[f] = w; if (el.dataset.go) location.hash = el.dataset.go; return; } // 링크는 그대로 따라간다
+  if ((el = tg.closest('[data-feedwho]'))) { const [, w] = el.dataset.feedwho.split(':'); state.feedWho.shorts = w; state.feedType = ''; if (el.dataset.go) location.hash = el.dataset.go; return; } // 링크는 그대로 따라간다
   if ((el = tg.closest('[data-shcopy]'))) {
     const url = location.origin + location.pathname + '#/' + el.dataset.shcopy;
     navigator.clipboard?.writeText(url).then(() => toast(tRaw('shorts.copied')), () => prompt('', url));
