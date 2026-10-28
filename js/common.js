@@ -199,7 +199,7 @@ const Data = {
 };
 
 /* mp3 같은 소리 파일은 드라이브 썸네일이 없다.
-   관리자 설정(audioCover)에 따라 그 멤버 팬아트 중 하나(들어올 때마다 랜덤) 또는 프로필 사진을 표지로 쓴다 */
+   보는 사람이 노래 듣기 화면에서 고른 대로(이 브라우저에 기억) 그 멤버 팬아트 중 하나(들어올 때마다 랜덤) 또는 프로필 사진을 표지로 쓴다 */
 function audioThumbs(items, site) {
   const arts = {};
   items.forEach(i => { if (i.kind === 'fanart' && i.thumb) i.members.forEach(m => (arts[m] ||= []).push(i.thumb)); });
@@ -209,7 +209,7 @@ function audioThumbs(items, site) {
     const m = site.members.find(x => x.id === mid);
     const prof = m && firstSrc(m.avatar) ? imgUrl(firstSrc(m.avatar), 640) : '';
     const pool = arts[mid] || [];
-    it.thumb = (site.audioCover || 'fanart') === 'fanart' && pool.length ? pool[Math.floor(Math.random() * pool.length)] : prof;
+    it.thumb = store.get('audioCover', 'fanart') === 'fanart' && pool.length ? pool[Math.floor(Math.random() * pool.length)] : prof;
   });
 }
 

@@ -86,6 +86,24 @@ const Player = {
 
   current() { return this.queue[this.idx]; },
 
+  // mp3 는 영상 대신 표지 그림
+  paintCover(it, src) {
+    const audio = src === 'drive' && it.media === 'audio';
+    this.stage.dataset.audio = audio ? '1' : '';
+    if (audio) {
+      const bg = it.thumb ? `url(&quot;${esc(it.thumb)}&quot;)` : 'none';
+      const col = esc(Data.member(it.members[0])?.color || '#2a2860');
+      $('.stage-cover', this.stage).innerHTML = `<span class="sc-bg" style="background-color:${col};background-image:${bg}"></span>${it.thumb ? `<img class="sc-img" src="${esc(it.thumb)}" alt="">` : `<span class="sc-t">${esc(it.title || '')}</span>`}`;
+    }
+  },
+  // 표지 설정을 바꾸면 지금 곡에도 바로
+  refreshCover() {
+    const it = this.current();
+    if (!it) return;
+    this.paintCover(it, this.source);
+    this.paintNow(it);
+  },
+
   /* 노래를 끄고 아래 바 · 영상 창을 내린다 */
   close() {
     if (location.hash.startsWith('#/play')) location.hash = '#/listen';
@@ -124,13 +142,7 @@ const Player = {
 
   playSource(it, src) {
     this.tried.add(src);
-    const audio = src === 'drive' && it.media === 'audio';
-    this.stage.dataset.audio = audio ? '1' : '';
-    if (audio) {
-      const bg = it.thumb ? `url(&quot;${esc(it.thumb)}&quot;)` : 'none';
-      const col = esc(Data.member(it.members[0])?.color || '#2a2860');
-      $('.stage-cover', this.stage).innerHTML = `<span class="sc-bg" style="background-color:${col};background-image:${bg}"></span>${it.thumb ? `<img class="sc-img" src="${esc(it.thumb)}" alt="">` : `<span class="sc-t">${esc(it.title || '')}</span>`}`;
-    }
+    this.paintCover(it, src);
     this.source = src;
     this.paintSource();
     $$('[data-np-src]').forEach(el => (el.textContent = src === 'youtube' ? 'YouTube' : 'Drive'));

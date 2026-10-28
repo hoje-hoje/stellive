@@ -357,6 +357,8 @@ function renderListen() {
       <span class="grow"></span>
       <span class="chip-k">${esc(t('listen.preferNote'))}</span>
       <button type="button" class="chip ${Player.prefer === 'drive' ? 'on' : ''}" data-prefer aria-pressed="${Player.prefer === 'drive'}">${esc(t('listen.prefer'))}</button>
+      <span class="chip-k">${esc(t('listen.coverNote'))}</span>
+      ${['fanart', 'profile'].map(v => `<button type="button" class="chip ${store.get('audioCover', 'fanart') === v ? 'on' : ''}" data-cover="${v}" aria-pressed="${store.get('audioCover', 'fanart') === v}">${esc(t(v === 'fanart' ? 'listen.coverFanart' : 'listen.coverProfile'))}</button>`).join('')}
     </div>
     <div class="modes">
       <button type="button" class="mode" data-mode="random"><span class="bd">01</span><span class="ko">${esc(t('listen.random'))}</span><small>${esc(t('list.count', { n: music.length }))}</small></button>
@@ -785,6 +787,12 @@ document.addEventListener('click', e => {
     }
     if (mode === 'newest') { Player.shuffle = false; Player.paintModes(); Player.play(music, null, t('listen.newest')); }
     return;
+  }
+  if ((el = tg.closest('[data-cover]'))) {
+    store.set('audioCover', el.dataset.cover);
+    audioThumbs(Data.items, Data.site);
+    Player.refreshCover();
+    renderListen(); ensureFoot(); return;
   }
   if (tg.closest('[data-prefer]')) { Player.setPrefer(Player.prefer === 'drive' ? 'youtube' : 'drive'); renderListen(); ensureFoot(); return; }
   if ((el = tg.closest('[data-npq]'))) { Player.go(+el.dataset.npq); return; }

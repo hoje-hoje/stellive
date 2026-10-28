@@ -149,14 +149,6 @@ function paneSite() {
         <label class="field"><span>팬 카페 주소 <em>배너의 로고 동그라미를 누르면 여기로 간다</em></span><input type="url" data-k="fanCafe" value="${esc(draft.fanCafe || '')}" placeholder="https://cafe.naver.com/…"></label>
         <label class="field"><span>삭제 요청 연락처 <em>About 페이지에 나온다</em></span><input type="email" data-k="contact" value="${esc(draft.contact || '')}"></label>
       </div>
-      <h2 style="margin-top:18px">노래</h2>
-      <div class="row">
-        <label class="field"><span>mp3 표지 <em>소리 파일은 영상이 없어서 이 그림을 대신 보여 준다</em></span>
-          <select data-k="audioCover">
-            <option value="fanart" ${(draft.audioCover || 'fanart') === 'fanart' ? 'selected' : ''}>그 멤버 팬아트 중 랜덤 (팬아트가 없으면 프로필 사진)</option>
-            <option value="profile" ${draft.audioCover === 'profile' ? 'selected' : ''}>멤버 프로필 사진</option>
-          </select></label>
-      </div>
     </div>`;
   bindInputs(() => draft);
 }
