@@ -243,6 +243,13 @@ const Auth = {
     this.user = { token: credential, email: p.email, name: p.name || p.email, picture: p.picture || '', exp: p.exp };
     store.set('auth', this.user);
     this.emit();
+    // 관리자면 남이 올린 것도 고치고 지울 수 있게 표시해 둔다
+    if (LIVE) api('whoami').then(r => {
+      if (!r.user?.admin || this.user?.email !== p.email) return;
+      this.user.admin = true;
+      store.set('auth', this.user);
+      this.emit();
+    }).catch(() => {});
   },
 
   token() {
@@ -322,6 +329,7 @@ const ICON = {
   chevL: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"/></svg>',
   chevR: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>',
   expand: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>',
+  pencil: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>',
   sparkle: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 1c.6 6.3 4.7 10.4 11 11-6.3.6-10.4 4.7-11 11-.6-6.3-4.7-10.4-11-11C7.3 11.4 11.4 7.3 12 1z"/></svg>',
 };
 

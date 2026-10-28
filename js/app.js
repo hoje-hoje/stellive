@@ -20,7 +20,9 @@ const ef = (path, value, ph = '') => EDIT
   : esc(value || '');
 const pad2 = n => String(n).padStart(2, '0');
 const memberNames = it => it.members.map(id => Data.member(id)?.name).filter(Boolean);
-const canDelete = it => Auth.user && it.byEmail && Auth.user.email === it.byEmail;
+// 올린 사람(또는 관리자)만 고치고 지울 수 있다
+const canDelete = it => !!Auth.user && (Auth.user.admin || (!!it.byEmail && Auth.user.email === it.byEmail));
+const ownBtns = it => canDelete(it) ? `<button type="button" class="icon-btn sm" data-rename="${esc(it.id)}" aria-label="${esc(t('list.rename'))}" title="${esc(t('list.rename'))}">${ICON.pencil}</button><button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="${esc(t('list.delete'))}">${ICON.trash}</button>` : '';
 const active = () => Data.site.members.filter(m => !m.graduated);
 const graduates = () => Data.site.members.filter(m => m.graduated);
 const genNo = g => pad2(Data.site.groups.indexOf(g));
@@ -56,7 +58,7 @@ function songList(items, label) {
       <span class="s-x">
         ${starBtn(it)}
         <a class="icon-btn sm" href="${esc(it.open)}" target="_blank" rel="noopener" aria-label="${esc(t('list.open'))}" title="${esc(t('list.open'))}">${ICON.ext}</a>
-        ${canDelete(it) ? `<button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="${esc(t('list.delete'))}">${ICON.trash}</button>` : ''}
+        ${ownBtns(it)}
       </span>
       <span class="playc">${ICON.play}</span>
     </li>`).join('')}</ol>`;
@@ -68,7 +70,7 @@ function clipGrid(items) {
     <article class="clip" data-view-item="${esc(it.id)}">
       <div class="c-th" style="${it.thumb ? `background-image:url('${esc(it.thumb)}')` : ''}">${it.thumb ? '' : it.link?.type === 'chzzk' ? ICON.chzzk : it.link?.type === 'x' ? ICON.x : ICON.video}</div>
       <div class="c-meta"><b>${esc(it.title || t('list.clipTitle'))}</b><small>${esc(memberNames(it).join(' · '))}${it.by ? ` · ${esc(it.by)}` : ''}</small></div>
-      <div class="c-x">${starBtn(it)}${canDelete(it) ? `<button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="${esc(t('list.delete'))}">${ICON.trash}</button>` : ''}</div>
+      <div class="c-x">${starBtn(it)}${ownBtns(it)}</div>
     </article>`).join('')}</div>`;
 }
 
@@ -77,7 +79,7 @@ function imageGrid(items) {
   return `<div class="masonry">${items.map(it => `
     <figure class="art" data-view-item="${esc(it.id)}">
       ${it.thumb ? `<img src="${esc(it.thumb)}" alt="${esc(it.title)}" loading="lazy">` : `<div class="art-link">${it.link?.type === 'x' ? ICON.x : ICON.ext}<span>${esc(it.title || t('list.linkView'))}</span></div>`}
-      <figcaption><span>${esc(it.title)}${it.by ? ` · ${esc(it.by)}` : ''}</span>${starBtn(it)}${canDelete(it) ? `<button type="button" class="icon-btn sm" data-del="${esc(it.id)}" aria-label="${esc(t('list.delete'))}">${ICON.trash}</button>` : ''}</figcaption>
+      <figcaption><span>${esc(it.title)}${it.by ? ` · ${esc(it.by)}` : ''}</span>${starBtn(it)}${ownBtns(it)}</figcaption>
     </figure>`).join('')}</div>`;
 }
 
@@ -437,6 +439,7 @@ function renderPlay() {
         <div class="np-acts">
           <button type="button" class="icon-btn ${fav ? 'on' : ''}" data-fav="${esc(it.id)}" aria-pressed="${fav}" aria-label="${esc(t('np.fav'))}">${fav ? ICON.star : ICON.starO}</button>
           ${it.url ? `<a class="btn line" href="${esc(it.url)}" target="_blank" rel="noopener">${esc(t('np.src'))} ${ICON.ext}</a>` : ''}
+          ${ownBtns(it).replace(/icon-btn sm/g, 'icon-btn')}
         </div>
         <div class="np-q-h"><span class="kk">${esc(t('np.nextK'))}</span><b>${esc(t('np.next'))}</b><small>${esc(t('list.count', { n: q.length }))}</small></div>
         <ol class="np-q">${q.map((x, i) => `
@@ -690,6 +693,7 @@ document.addEventListener('click', e => {
   let el;
   if ((el = tg.closest('[data-fav]'))) { e.stopPropagation(); Favs.toggle(el.dataset.fav); return; }
   if ((el = tg.closest('[data-del]'))) { e.stopPropagation(); deleteItem(el.dataset.del); return; }
+  if ((el = tg.closest('[data-rename]'))) { e.stopPropagation(); renameItem(el.dataset.rename); return; }
   if ((el = tg.closest('[data-upload]'))) { e.preventDefault(); openUpload(JSON.parse(el.dataset.upload || '{}')); return; }
   if (tg.closest('[data-top]')) { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if ((el = tg.closest('[data-play]'))) {
@@ -883,6 +887,22 @@ $('#upload form').addEventListener('submit', async e => {
     status.textContent = err.message;
   } finally { btn.disabled = false; }
 });
+
+async function renameItem(id) {
+  const it = Data.item(id);
+  if (!it) return;
+  const title = prompt(tRaw('list.renamePrompt'), it.title || '');
+  if (title === null || !title.trim() || title.trim() === it.title) return;
+  try {
+    if (!LIVE) store.set('demoItems', store.get('demoItems', []).map(x => (x.id === id ? { ...x, title: title.trim() } : x)));
+    else await api('rename', { id, title: title.trim() });
+    it.title = title.trim();
+    if (Player.current()?.id === id) Player.paintNow(it);
+    Player.paintQueue();
+    toast(tRaw('list.renamed'));
+    route(true);
+  } catch (e) { toast(e.message, true); }
+}
 
 async function deleteItem(id) {
   if (!confirm(tRaw('upload.confirmDelete'))) return;

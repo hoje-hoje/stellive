@@ -143,6 +143,29 @@ const ACTIONS = {
     return {};
   },
 
+  rename(b, u) {
+    const title = String(b.title || '').trim().slice(0, 300);
+    if (!title) throw new Error('제목이 비어 있다');
+    const admin = isAdmin_(u);
+    if (String(b.id).indexOf('l_') === 0) {
+      const sh = sheet_('links');
+      const rows = sh.getDataRange().getValues();
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][0] !== b.id) continue;
+        if (!admin && rows[i][6] !== u.email) throw new Error('자기가 올린 것만 고칠 수 있다');
+        sh.getRange(i + 1, 3).setValue(title);
+      }
+    } else {
+      const file = DriveApp.getFileById(b.id);
+      const meta = parseMeta_(file.getDescription());
+      if (!admin && meta.byEmail !== u.email) throw new Error('자기가 올린 것만 고칠 수 있다');
+      meta.title = title;
+      file.setDescription(JSON.stringify(meta));
+    }
+    clearCache_();
+    return {};
+  },
+
   getFavorites(b, u) {
     const row = favRow_(u.email);
     return { ids: row ? JSON.parse(row.values[1] || '[]') : [] };

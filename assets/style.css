@@ -529,7 +529,7 @@ body.has-player #stage { display: block; }
 #ytWrap iframe { width: 100%; height: 100%; }
 #stage[data-kind="yt"] #ytWrap, #stage[data-kind="video"] video, #stage[data-kind="frame"] iframe { display: block; }
 
-#stage[data-view="page"] { position: absolute; right: auto; bottom: auto; z-index: 40; border: 0; transition: none; box-shadow: 0 30px 90px rgba(0,0,0,.45); }
+#stage[data-view="page"] { position: absolute; right: auto; bottom: auto; z-index: 40; border: 0; transition: none; box-shadow: none; }
 #stage[data-view="page"] .stage-bar { display: none; }
 #player [data-p="page"]:not(.icon-btn) { cursor: pointer; }
 #pThumb { border: 0; padding: 0; }
