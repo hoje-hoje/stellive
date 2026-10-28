@@ -558,18 +558,27 @@ body.has-player #stage { display: block; }
 .p-txt:hover #pTitle { text-decoration: underline; text-underline-offset: 3px; }
 
 /* ══ 노래 창 ══ */
-#view.play-v { max-width: 1760px; padding-top: 84px; gap: 40px; }
+#view.play-v { max-width: 1760px; padding-top: 80px; gap: 40px; }
 .np { --side: clamp(300px, 25vw, 420px); --vw: min(calc(100vw - 80px - 48px - var(--side)), calc((100vh - 84px - var(--player) - 70px) * 16 / 9), 1440px);
   position: relative; display: grid; grid-template-columns: max(var(--vw), 480px) var(--side); justify-content: center; gap: 48px; align-items: start; }
-.np-glow { position: fixed; inset: -10%; z-index: -1; background: center / cover no-repeat; filter: blur(90px) saturate(1.5); opacity: .32; pointer-events: none; }
+#npGlow { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .8s; overflow: hidden; }
+#npGlow.on { opacity: 1; }
+#npGlow i { position: absolute; inset: -12%; background: center / cover no-repeat; opacity: 0; transition: opacity 1.4s ease; filter: blur(90px) saturate(1.5); }
+#npGlow i.show { opacity: .34; }
+/* 밝은 테마는 영상 색을 파스텔로 — 어두운 영상이어도 화면이 칙칙해지지 않게 */
+[data-theme="lavender"] #npGlow i, [data-theme="white"] #npGlow i { filter: blur(90px) saturate(1.8) brightness(1.9) contrast(.75); }
+[data-theme="lavender"] #npGlow i.show, [data-theme="white"] #npGlow i.show { opacity: .5; }
 .np-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .np-slot { width: 100%; aspect-ratio: 16 / 9; background: #000; }
+#stage[data-view="page"], #stage[data-view="page"] .stage-body > video { background: #000; }
 .np-under { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 14px; color: var(--dim); }
 .np-under a, .np-under button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; color: inherit; }
 .np-under a svg { width: 16px; height: 16px; }
 .np-under a:hover, .np-under button:hover { color: var(--fg); }
-.np-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; max-height: calc(100vh - 84px - var(--player) - 24px); padding-top: 8px; }
-.np-title { font-family: var(--batang); font-weight: 400; font-size: clamp(24px, 2.1vw, 34px); line-height: 1.35; word-break: keep-all; overflow-wrap: anywhere; }
+/* 오른쪽 칸은 영상(+아래 줄)과 높이를 맞추고, 남는 자리는 재생 목록이 채운다 */
+.np-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; height: calc(max(var(--vw), 480px) * 9 / 16 + 50px); }
+.np-title { font-family: var(--batang); font-weight: 400; font-size: clamp(20px, 1.55vw, 28px); line-height: 1.4; word-break: keep-all; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex: none; }
 .np-who { display: flex; flex-wrap: wrap; gap: 8px; }
 .np-who a { display: inline-flex; align-items: center; gap: 8px; padding: 4px 14px 4px 4px; border: 1px solid var(--line2); border-radius: 999px; font-size: 15px; }
 .np-who a:hover { background: var(--today); }
@@ -583,7 +592,7 @@ body.has-player #stage { display: block; }
 .np-q-h { display: flex; align-items: baseline; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
 .np-q-h b { font-family: var(--batang); font-weight: 400; font-size: 18px; }
 .np-q-h small { margin-left: auto; color: var(--dim); font-size: 12px; }
-.np-q { list-style: none; padding: 0; margin: 0 -10px; overflow-y: auto; min-height: 120px; flex: 1 1 auto; scrollbar-width: thin; overscroll-behavior: contain; }
+.np-q { list-style: none; padding: 0; margin: 0 -10px; overflow-y: auto; min-height: 96px; flex: 1 1 0; scrollbar-width: thin; overscroll-behavior: contain; }
 .np-q li { display: grid; grid-template-columns: 30px 1fr; gap: 8px; align-items: center; padding: 8px 10px; cursor: pointer; }
 .np-q li:hover, .np-q li.now { background: var(--today); }
 .np-q li.now b { color: var(--accent); }
@@ -594,7 +603,7 @@ body.has-player #stage { display: block; }
 @media (max-width: 820px) {
   #view.play-v { padding-top: 72px; }
   .np { grid-template-columns: 1fr; gap: 24px; }
-  .np-side { padding-top: 0; max-height: none; }
+  .np-side { height: auto; }
   .np-q { max-height: 50vh; }
 }
 

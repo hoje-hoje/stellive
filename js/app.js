@@ -416,7 +416,6 @@ function renderPlay() {
   const fav = Favs.has(it.id);
   view.innerHTML = `
     <section class="np">
-      ${it.thumb ? `<div class="np-glow" style="background-image:url(&quot;${esc(it.thumb)}&quot;)" aria-hidden="true"></div>` : ''}
       <div class="np-main">
         <div class="np-slot" id="npSlot"></div>
         <div class="np-under">
@@ -453,6 +452,28 @@ function renderPlay() {
   const now = $('.np-q .now'), ol = $('.np-q');
   if (now) ol.scrollTop += now.getBoundingClientRect().top - ol.getBoundingClientRect().top - 8;
 }
+// 노래 창 배경: 지금 곡 썸네일을 크게 흐려 깔아서 영상 색이 화면 전체에 번지게 한다.
+// 이미 받아 둔 작은 썸네일 한 장만 쓰니 느려지지 않는다. 곡이 바뀌면 두 겹을 엇갈려 스르륵 바꾼다
+const Glow = {
+  url: '',
+  set(url) {
+    const box = $('#npGlow');
+    box.classList.toggle('on', !!url);
+    if (!url || url === this.url) return;
+    this.url = url;
+    const [a, b] = $$('i', box);
+    const next = a.classList.contains('show') ? b : a, prev = next === a ? b : a;
+    const img = new Image();
+    img.onload = img.onerror = () => {
+      if (this.url !== url) return;
+      next.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`;
+      next.classList.add('show');
+      prev.classList.remove('show');
+    };
+    img.src = url;
+  },
+};
+
 // 곡이 바뀌면 노래 창을 다시 그린다
 Player.onChange(() => { if (location.hash.startsWith('#/play')) route(true); });
 
@@ -673,7 +694,7 @@ function route(keepScroll) {
   lastPage = pageKey;
   view.classList.toggle('about-v', page === 'about');
   view.classList.toggle('play-v', page === 'play');
-  if (page !== 'play') Player.leavePage();
+  if (page !== 'play') { Player.leavePage(); Glow.set(''); }
   if (!page) renderHome();
   else if (page === 'm') renderMember(decodeURIComponent(a || ''), b);
   else if (page === 'group') renderGroup(a, b);
@@ -685,6 +706,7 @@ function route(keepScroll) {
   else renderNotFound();
   ensureFoot();
   if (page === 'play' && $('#npSlot')) Player.enterPage($('#npSlot'));
+  if (page === 'play') Glow.set(Player.current()?.thumb || '');
   markNav();
   applyPositions(view);
   Menu.closeDrawer();
