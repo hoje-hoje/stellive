@@ -28,9 +28,11 @@ const graduates = () => Data.site.members.filter(m => m.graduated);
 const genNo = g => pad2(Data.site.groups.indexOf(g));
 
 function linkBtns(m) {
-  const L = m.links || {};
-  const one = (k, title) => `<a class="lk ${L[k] ? '' : 'off'}" href="${esc(L[k] || '#')}" target="_blank" rel="noopener" title="${title}" aria-label="${esc(m.name)} ${title}">${ICON[k]}</a>`;
-  return one('chzzk', t('link.chzzk')) + one('x', t('link.x')) + one('youtube', t('link.youtube'));
+  const L = { ...(m.links || {}), namu: namuLink(m) };
+  const i = Data.site.members.indexOf(m);
+  // data-link: 편집 모드에서 누르면 그 링크 주소를 바로 고친다
+  const one = (k, title) => `<a class="lk ${L[k] ? '' : 'off'}" href="${esc(L[k] || '#')}" target="_blank" rel="noopener" title="${title}" aria-label="${esc(m.name)} ${title}" data-link="members.${i}.links.${k}">${ICON[k]}</a>`;
+  return one('chzzk', t('link.chzzk')) + one('x', t('link.x')) + one('youtube', t('link.youtube')) + (L.namu || EDIT ? one('namu', t('link.namu')) : '');
 }
 
 function starBtn(it) {
@@ -311,7 +313,7 @@ function renderMember(id, tab) {
         ${m.bio || EDIT ? `<div class="summary"><h3>${esc(t('profile.summary'))}</h3><p>${ef(`${mp}.bio`, m.bio, '소개를 쓴다')}</p></div>` : ''}
         ${m.quote || EDIT ? `<p class="quote">“${ef(`${mp}.quote`, m.quote, '대표 한마디')}”</p>` : ''}
         <div class="pf-links">
-          ${['chzzk', 'x', 'youtube'].map(k => m.links?.[k] ? `<a class="btn sm" href="${esc(m.links[k])}" target="_blank" rel="noopener">${ICON[k]} ${esc(t('link.' + k))}</a>` : '').join('')}
+          ${['chzzk', 'x', 'youtube', 'namu'].map(k => { const u = k === 'namu' ? namuLink(m) : m.links?.[k]; return u || EDIT ? `<a class="btn sm ${u ? '' : 'off'}" href="${esc(u || '#')}" target="_blank" rel="noopener" data-link="${mp}.links.${k}">${ICON[k]} ${esc(stripMarks(t('link.' + k)))}</a>` : ''; }).join('')}
           <button type="button" class="btn sm solid" data-playmember="${esc(m.id)}">${ICON.play} ${esc(t('profile.playAll'))}</button>
         </div>
         <div class="mini">

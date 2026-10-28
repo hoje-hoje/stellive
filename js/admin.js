@@ -225,6 +225,7 @@ function paneMembers() {
           <label class="field"><span>치지직</span><input type="url" data-k="members.${i}.links.chzzk" value="${esc(m.links?.chzzk || '')}" placeholder="https://chzzk.naver.com/…"></label>
           <label class="field"><span>X</span><input type="url" data-k="members.${i}.links.x" value="${esc(m.links?.x || '')}" placeholder="https://x.com/…"></label>
           <label class="field"><span>유튜브</span><input type="url" data-k="members.${i}.links.youtube" value="${esc(m.links?.youtube || '')}" placeholder="https://youtube.com/@…"></label>
+          <label class="field"><span>나무위키 <em>비우면 정식 이름 문서로 간다</em></span><input type="url" data-k="members.${i}.links.namu" value="${esc(m.links?.namu || '')}" placeholder="https://namu.wiki/w/…"></label>
         </div>
         <div class="row">
           <button class="btn sm" data-mmove="-1">↑ 위로</button>

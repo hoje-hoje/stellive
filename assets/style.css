@@ -374,6 +374,9 @@ input, select, textarea { font: inherit; color: inherit; }
 .lk { width: 32px; height: 32px; display: grid; place-items: center; color: var(--dim); font-size: 15px; transition: color .15s, transform .15s; }
 .lk:hover { color: var(--fg); transform: translateY(-2px); }
 .lk.off { opacity: .3; pointer-events: none; }
+/* 편집 모드: 비어 있는 링크도 눌러서 넣을 수 있게 */
+body.editing [data-link] { pointer-events: auto; outline: 1px dashed var(--accent); outline-offset: 2px; cursor: pointer; }
+body.editing .lk.off, body.editing .pf-links .off { opacity: .55; }
 .mcard.grad .mc-img { background: var(--tile); border: 1px solid var(--line2); }
 .mcard.grad .mc-en { color: var(--dim); }
 .mcard.grad .mc-cap b { color: var(--dim); }

@@ -78,6 +78,7 @@ const TEXT_SECTIONS = [
     ['link.chzzk', '치지직 버튼', '치지직'],
     ['link.x', 'X 버튼', 'X'],
     ['link.youtube', '유튜브 버튼', 'YouTube'],
+    ['link.namu', '나무위키 버튼', '나무위키'],
   ] },
   { id: 'list', name: '목록 · 빈 화면', items: [
     ['list.count', '노래 개수', '{n}곡'],

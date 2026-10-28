@@ -23,6 +23,21 @@
     if (v === '' || v == null) delete o[last]; else o[last] = v;
   }
 
+  /* ── 멤버 링크 (치지직 · X · 유튜브 · 나무위키): 아이콘이나 버튼을 누르면 주소를 묻는다 ── */
+  function editLink(path) {
+    const [, i, , k] = path.split('.');
+    const m = Data.site.members[+i];
+    const label = { chzzk: '치지직', x: 'X', youtube: '유튜브', namu: '나무위키' }[k] || k;
+    const cur = getPath(Data.site, path) || '';
+    const v = prompt(`${m?.name || ''} ${label} 주소를 넣자 (비우면 지운다${k === 'namu' ? ' — 나무위키는 비우면 정식 이름 문서로 간다' : ''})`, cur);
+    if (v === null) return;
+    const u = v.trim();
+    if (u && !/^https?:\/\//.test(u)) { toast('https:// 로 시작하는 주소를 넣자', true); return; }
+    setPath(Data.site, path, u);
+    touch();
+    refresh();
+  }
+
   /* ── 임시 저장 ── */
   let beforeEdit = null; // 이번에 고치기 시작하기 전 상태 (처음 고칠 때 백업으로 남긴다)
   function touch() {
@@ -577,6 +592,8 @@
     // 다른 걸 고치러 가면 그림 겹 판은 닫는다
     if (Lay.path && !Lay.downInside && !Lay.justDragged && e.target.isConnected && !e.target.closest('.lay-target')) Lay.close();
     if (Lay.path && e.target.closest('.lay-target')) { e.preventDefault(); e.stopPropagation(); return; }
+    const lk = e.target.closest('[data-link]');
+    if (lk) { e.preventDefault(); e.stopPropagation(); editLink(lk.dataset.link); return; }
     const sp = e.target.closest('.ed-t');
     if (sp) { e.preventDefault(); e.stopPropagation(); startEdit(sp); return; }
     const im = e.target.closest('[data-ei]');
