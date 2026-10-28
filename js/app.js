@@ -543,6 +543,12 @@ const Menu = {
     $('#edgeLeft').addEventListener('mouseenter', () => this.openDrawer(true));
     $('#indexTab').addEventListener('mouseenter', () => { if (this.hover.matches) this.openDrawer(true); });
     $('#drawer').addEventListener('mouseleave', () => { if (this.byHover) this.closeDrawer(); });
+    // 목차 끝까지 굴려도 뒤의 페이지는 따라 내려가지 않는다
+    $('#drawer').addEventListener('wheel', e => {
+      const d = $('#drawer');
+      const atTop = d.scrollTop <= 0, atEnd = d.scrollTop + d.clientHeight >= d.scrollHeight - 1;
+      if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atEnd)) e.preventDefault();
+    }, { passive: false });
     $('#indexTab').addEventListener('click', () => ($('#drawer').classList.contains('open') ? this.closeDrawer() : this.openDrawer(false)));
     $('#menuBtn').addEventListener('click', () => this.openDrawer(false));
     $('#topBtn').addEventListener('click', () => this.setTop(!$('#topbar').classList.contains('open')));

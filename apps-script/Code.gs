@@ -423,3 +423,95 @@ function cacheGet_(key) {
   return keys.map(k => got[k]).join('');
 }
 function clearCache_() { CacheService.getScriptCache().remove('items_n'); }
+
+/* ─── 예전 「노래」·「팬아트」 폴더 정리 (한 번만 돌린다) ───
+   moveOldPreview() 로 어디로 갈지 기록만 먼저 보고, moveOld() 로 실제로 옮긴다.
+   시간이 모자라 멈추면 moveOld() 를 다시 누르면 남은 것부터 이어서 한다. */
+const OLD_DIRS = [['노래', 'cover'], ['팬아트', 'fanart']];
+const OLD_EXTRA = { '1P5O9ZU9Kyr-AQXKVXVjBPzwIngvvMSs_': { kind: 'fanart', members: ['meri'] } }; // 맨 위에 있던 메리 팬아트 영상
+const NAME_ALIASES = {
+  gangzi: ['강지'],
+  yuni: ['아야츠노 유니', 'Ayatsuno Yuni'],
+  huya: ['사키하네 후야', '사키히네 후야', 'Sakihane Huya', '후야'],
+  hina: ['시라유키 히나', 'Shirayuki Hina'],
+  mashiro: ['네네코 마시로', 'Neneko Mashiro', '마시로'],
+  lize: ['아카네 리제', 'Akane Lize', '리제'],
+  tabi: ['아라하시 타비', 'Arahashi Tabi', '타비'],
+  shibuki: ['텐코 시부키', 'Tenko Shibuki', '시부키'],
+  rin: ['아오쿠모 린', 'Aokumo Rin'],
+  nana: ['하나코 나나', 'Hanako Nana'],
+  riko: ['유즈하 리코', 'Yuzuha Riko', '리코'],
+  toa: ['시즈키 토아', 'Shizuki Toa'],
+  rang: ['코가네 랑', '코카네 랑', 'Cogane Rang', 'Kogane Rang'],
+  hiyori: ['하나요 히요리', 'Hanayo Hiyori', '히요리'],
+  meri: ['토키노 메리', 'Tokino Mary', 'Tokino Meri'],
+  kanna: ['아이리 칸나', 'Airi Kanna', '藍璃かんな', '칸나'],
+};
+const GROUP_WORDS = [['gen1', /everys|에브리스/i], ['gen2', /universe|유니버스/i], ['gen3', /clich[ée]|클리셰/i], ['gen4', /abyss|어비스/i], ['all', /stel\s*live|스텔라이브/i]];
+
+function moveOldPreview() { moveOld_(true); }
+function moveOld() { moveOld_(false); }
+
+function moveOld_(dry) {
+  const site = readSite_();
+  const root = root_();
+  const start = Date.now();
+  const left = [], log = [];
+  const place = (file, baseKind, folderText) => {
+    const p = classifyOld_(file.getName(), folderText, baseKind, site, OLD_EXTRA[file.getId()]);
+    if (!p) return null;
+    // 팬아트는 여럿이 나와도 첫 멤버 폴더에 둔다 (설명에 멤버를 다 적어서 각자 페이지에 다 뜬다)
+    p.folder = p.kind === 'fanart' && !p.group ? targetFolder_(site, p.kind, p.members.slice(0, 1), '') : targetFolder_(site, p.kind, p.members, p.group);
+    return p;
+  };
+  const handle = (file, baseKind, path) => {
+    if (Date.now() - start > 5 * 60 * 1000) throw new Error('시간이 모자라 멈췄다. moveOld 를 한 번 더 돌리면 이어서 한다');
+    const p = place(file, baseKind, path);
+    if (!p) { left.push(path + '/' + file.getName()); return; }
+    log.push(KINDS[p.kind] + ' ← ' + p.title + '  [' + (p.group || p.members.join(',')) + ']');
+    if (dry) return;
+    const old = parseMeta_(file.getDescription());
+    file.setDescription(JSON.stringify({ title: p.title, members: p.members, group: p.group, byName: old.byName || '', byEmail: old.byEmail || '' }));
+    try { sharePublic_(file); } catch (e) { Logger.log('공유 실패: ' + file.getName()); }
+    file.moveTo(p.folder);
+  };
+  const walk = (folder, baseKind, path) => {
+    const files = folder.getFiles();
+    while (files.hasNext()) handle(files.next(), baseKind, path);
+    const subs = folder.getFolders();
+    while (subs.hasNext()) { const f = subs.next(); walk(f, baseKind, path + '/' + f.getName()); }
+  };
+  try {
+    OLD_DIRS.forEach(d => { const it = root.getFoldersByName(d[0]); while (it.hasNext()) walk(it.next(), d[1], d[0]); });
+    Object.keys(OLD_EXTRA).forEach(id => {
+      const f = DriveApp.getFileById(id);
+      const parent = f.getParents();
+      if (parent.hasNext() && parent.next().getId() === root.getId()) handle(f, OLD_EXTRA[id].kind, '');
+    });
+  } finally {
+    if (!dry) clearCache_();
+    Logger.log((dry ? '[미리보기] ' : '') + log.length + '개 ' + (dry ? '옮길 예정' : '옮김') + '\n' + log.join('\n'));
+    if (left.length) Logger.log('멤버를 못 찾아서 그대로 둔 것 ' + left.length + '개 (직접 옮기거나 사이트에서 올리면 된다)\n' + left.join('\n'));
+  }
+}
+
+function classifyOld_(name, folderText, baseKind, site, extra) {
+  const order = (site.members || []).map(m => m.id);
+  const findMembers = text => {
+    const low = text.toLowerCase();
+    return order.filter(id => (NAME_ALIASES[id] || []).some(a => low.indexOf(a.toLowerCase()) >= 0));
+  };
+  const named = extra ? extra.members : findMembers(name);
+  let members = named.length ? named : findMembers(folderText);
+  let group = '';
+  if (!extra && !named.length) {
+    // 파일 이름에 멤버가 없고 기수 / 스텔라이브 이름이 있으면 단체곡으로 본다
+    const g = GROUP_WORDS.filter(w => w[1].test(name))[0];
+    if (g) { group = g[0]; members = g[0] === 'all' ? [] : site.members.filter(m => m.group === g[0]).map(m => m.id); }
+  }
+  if (!members.length && !group) return null;
+  let kind = extra ? extra.kind : baseKind;
+  if (kind === 'cover' && !/cover|커버|mashup|매쉬업|메들리|medley/i.test(name)) kind = 'original';
+  const title = name.replace(/\.[^.]+$/, '').replace(/_MP3( \(\d+\))?$/i, '').trim();
+  return { kind: kind, members: members, group: group, title: title };
+}

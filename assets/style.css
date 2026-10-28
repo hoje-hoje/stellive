@@ -168,7 +168,7 @@ input, select, textarea { font: inherit; color: inherit; }
 /* 목차 */
 #drawer {
   position: fixed; left: 0; top: 0; bottom: 0; z-index: 70; width: 400px; max-width: 88vw;
-  color: var(--wall-fg); display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin;
+  color: var(--wall-fg); display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
   background:
     radial-gradient(1.4px 1.4px at 18% 22%, rgba(255,255,255,.7), transparent), radial-gradient(1px 1px at 72% 12%, rgba(255,255,255,.6), transparent),
     radial-gradient(1.2px 1.2px at 84% 48%, rgba(255,255,255,.6), transparent), radial-gradient(1px 1px at 30% 78%, rgba(255,255,255,.5), transparent),
