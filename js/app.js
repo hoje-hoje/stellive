@@ -948,6 +948,7 @@ $('[data-p="next"]').innerHTML = ICON.next;
 $('[data-p="repeat"]').innerHTML = ICON.repeat;
 $('[data-p="hide"]').innerHTML = ICON.video;
 $('[data-p="queue"]').innerHTML = ICON.menu;
+$('[data-p="close"]').innerHTML = ICON.chevR.replace('M9 5l7 7-7 7', 'M5 9l7 7 7-7');
 $('.icon-btn[data-p="page"]').innerHTML = ICON.expand;
 $('.icon-btn[data-p="page"]').title = tRaw('player.open');
 $$('.close').forEach(b => (b.innerHTML = ICON.close));

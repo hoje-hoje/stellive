@@ -36,6 +36,7 @@ const Player = {
       if (a === 'queue') $('#queue').classList.toggle('open');
       if (a === 'prefer') this.setPrefer(this.prefer === 'drive' ? 'youtube' : 'drive');
       if (a === 'page') this.togglePage();
+      if (a === 'close') this.close();
     });
     $('#stage').addEventListener('click', e => {
       const b = e.target.closest('[data-s]');
@@ -84,6 +85,23 @@ const Player = {
   },
 
   current() { return this.queue[this.idx]; },
+
+  /* 노래를 끄고 아래 바 · 영상 창을 내린다 */
+  close() {
+    if (location.hash.startsWith('#/play')) location.hash = '#/listen';
+    this.leavePage();
+    this.stopOthers('');
+    this.setPlaying(false);
+    this.queue = []; this.idx = -1;
+    this.bar.classList.add('leaving');
+    $('#queue').classList.remove('open');
+    setTimeout(() => {
+      this.bar.classList.remove('leaving');
+      this.bar.hidden = true;
+      document.body.classList.remove('has-player');
+      $$('.song.now').forEach(el => el.classList.remove('now'));
+    }, 250);
+  },
 
   /* 어느 쪽으로 틀지: 'youtube' 먼저 / 'drive' 먼저 (학교처럼 유튜브가 막힌 곳이면 drive) */
   prefer: store.get('prefer', 'youtube'),

@@ -578,6 +578,8 @@ body.has-player #stage { display: block; }
   .np-q { max-height: 50vh; }
 }
 
+#player.leaving { transform: translateY(100%); opacity: 0; }
+#player { transition: transform .25s, opacity .25s; }
 #player { position: fixed; left: 0; right: 0; bottom: 0; z-index: 55; height: var(--player); background: var(--bar); border-top: 1px solid var(--line2); backdrop-filter: blur(16px); }
 #pSeek { position: absolute; left: 0; right: 0; top: -7px; width: 100%; height: 14px; -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
 #pSeek::-webkit-slider-runnable-track { height: 3px; background: var(--line2); }
