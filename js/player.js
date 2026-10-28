@@ -21,7 +21,6 @@ const Player = {
       if (this.video.error?.code === 2 && this.netTries < 3) {
         this.netTries++;
         const src = this.video.getAttribute('src'), at = this.lastPos || 0;
-        toast(tRaw('player.retry'));
         setTimeout(() => {
           if (this.current() !== it) return;
           this.video.addEventListener('loadedmetadata', () => { this.video.currentTime = at; }, { once: true });
