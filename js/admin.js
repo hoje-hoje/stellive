@@ -220,7 +220,6 @@ function paneMembers() {
         ${imgField('전신 일러스트 (프로필 왼쪽 큰 그림 · 배경 투명 PNG 추천)', m.art, `members.${i}.art`, 'tall')}
         ${imgField('전신 일러스트 뒤 배경 (비우면 사이트 기본 배경)', m.artBg, `members.${i}.artBg`, true)}
         <label class="field"><span>소개 <em>Summary — 두세 줄이 가장 예쁘다</em></span><textarea data-k="members.${i}.bio">${esc(m.bio || '')}</textarea></label>
-        <label class="field"><span>대표 한마디 <em>프로필에 큰 기울임 글씨로</em></span><input data-k="members.${i}.quote" value="${esc(m.quote || '')}"></label>
         <div class="row">
           <label class="field"><span>치지직</span><input type="url" data-k="members.${i}.links.chzzk" value="${esc(m.links?.chzzk || '')}" placeholder="https://chzzk.naver.com/…"></label>
           <label class="field"><span>X</span><input type="url" data-k="members.${i}.links.x" value="${esc(m.links?.x || '')}" placeholder="https://x.com/…"></label>

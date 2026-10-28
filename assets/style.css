@@ -427,7 +427,7 @@ body.editing .lk.off, body.editing .pf-links .off { opacity: .55; }
 .tag b { font-weight: 600; margin-right: 10px; }
 .summary h3 { display: flex; align-items: center; gap: 14px; font-family: var(--bodoni); font-weight: 400; font-size: 22px; margin-bottom: 10px; }
 .summary h3::after { content: ''; flex: 1; height: 1px; background: var(--line2); }
-.summary p { font-family: var(--batang); font-size: 16px; line-height: 1.85; color: var(--dim); white-space: pre-line; }
+.summary p { font-family: var(--batang); font-size: 14px; line-height: 1.75; color: var(--dim); white-space: pre-line; }
 .quote { font-family: var(--bodoni); font-style: italic; font-size: 34px; line-height: 1.2; text-align: center; padding: 6px 0; }
 .pf-links { display: flex; flex-wrap: wrap; gap: 10px; }
 .pf-links a.btn { font-weight: 400; }

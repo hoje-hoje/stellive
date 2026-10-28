@@ -311,7 +311,6 @@ function renderMember(id, tab) {
           <div class="tag"><span><b>${esc(t('profile.unit'))}</b>${m.graduated ? esc(t('profile.graduated')) : `${esc(g?.label || '')} ${esc((g?.name || '').toUpperCase())}`}</span></div>
         </div>
         ${m.bio || EDIT ? `<div class="summary"><h3>${esc(t('profile.summary'))}</h3><p>${ef(`${mp}.bio`, m.bio, '소개를 쓴다')}</p></div>` : ''}
-        ${m.quote || EDIT ? `<p class="quote">“${ef(`${mp}.quote`, m.quote, '대표 한마디')}”</p>` : ''}
         <div class="pf-links">
           ${['chzzk', 'x', 'youtube', 'namu'].map(k => { const u = k === 'namu' ? namuLink(m) : m.links?.[k]; return u || EDIT ? `<a class="btn sm ${u ? '' : 'off'}" href="${esc(u || '#')}" target="_blank" rel="noopener" data-link="${mp}.links.${k}">${ICON[k]} ${esc(stripMarks(t('link.' + k)))}</a>` : ''; }).join('')}
           <button type="button" class="btn sm solid" data-playmember="${esc(m.id)}">${ICON.play} ${esc(t('profile.playAll'))}</button>
