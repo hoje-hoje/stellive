@@ -301,6 +301,9 @@ const Player = {
   /* ── 드라이브 / 직접 주소 ── */
   playVideo(src) {
     this.stopOthers('video');
+    // 첫 장면이 나오기 전엔 썸네일을 보여 준다 (mp3 는 표지가 따로 덮는다)
+    const it = this.current();
+    if (it?.thumb) this.video.poster = it.thumb; else this.video.removeAttribute('poster');
     this.video.src = src;
     this.video.play().catch(() => {});
   },
