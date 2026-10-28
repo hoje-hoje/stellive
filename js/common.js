@@ -8,6 +8,7 @@ const KINDS = [
   { id: 'original', name: '오리곡', music: true  },
   { id: 'album',    name: '앨범',   music: true  },
   { id: 'clip',     name: '클립',   music: false },
+  { id: 'shorts',   name: '쇼츠',   music: false },
   { id: 'fanart',   name: '팬아트', music: false, image: true },
   { id: 'meme',     name: '짤',     music: false, image: true },
 ];
@@ -416,6 +417,7 @@ const ICON = {
   chevR: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>',
   expand: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>',
   pencil: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>',
+  copy: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
   namu: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c-3.6 0-6.5 2.7-6.5 6 0 .9.2 1.7.6 2.5A4.3 4.3 0 0 0 4 14.6c0 2.4 2 4.3 4.5 4.3H11V22h2v-3.1h2.5c2.5 0 4.5-1.9 4.5-4.3a4.3 4.3 0 0 0-2.1-3.6c.4-.8.6-1.6.6-2.5 0-3.3-2.9-6-6.5-6z"/></svg>',
   sparkle: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 1c.6 6.3 4.7 10.4 11 11-6.3.6-10.4 4.7-11 11-.6-6.3-4.7-10.4-11-11C7.3 11.4 11.4 7.3 12 1z"/></svg>',
 };

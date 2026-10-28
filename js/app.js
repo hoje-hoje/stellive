@@ -8,10 +8,10 @@
    #/about         소개 · 2차 창작 가이드라인 */
 
 const view = $('#view');
-const state = { calMonth: null, calPick: null, listenKinds: new Set(['cover', 'original', 'album']), search: '', guideOpen: 1 };
+const state = { calMonth: null, calPick: null, listenKinds: new Set(['cover', 'original', 'album']), search: '', guideOpen: 1, shortsWho: '' };
 
 // 프로필 탭 순서는 홈/단체와 다르다 (팬아트·짤을 앞으로)
-const PROFILE_TABS = ['cover', 'fanart', 'meme', 'clip', 'original', 'album'];
+const PROFILE_TABS = ['cover', 'fanart', 'meme', 'clip', 'shorts', 'original', 'album'];
 
 /* ─── 공통 조각 ─── */
 // 편집 모드에서 멤버·기수 정보(이름, 소개…)를 그 자리에서 고칠 수 있게 표시한다
@@ -94,8 +94,99 @@ function itemsBlock(kind, items, label, ctx = {}) {
       <button type="button" class="btn sm solid" data-playall>${ICON.play} ${esc(t('list.playAll'))}</button>
     </div>` + songList(items, label);
   if (KIND[kind]?.image) return imageGrid(items);
+  if (kind === 'shorts') return shortsGrid(items, ctx.members?.length === 1 ? ctx.members[0] : '');
   return clipGrid(items);
 }
+
+/* ─── 쇼츠 ───
+   세로 영상이 한 화면에 하나씩. 스크롤 · 스와이프 · ↑↓ 로 넘기고, 화면에 들어온 것만 튼다 */
+const ytVert = id => `https://i.ytimg.com/vi/${id}/oardefault.jpg`;
+const ytWide = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+function shortThumb(it) {
+  return it.ytId
+    ? `<img src="${ytVert(it.ytId)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${ytWide(it.ytId)}'">`
+    : it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy">` : '';
+}
+// 멤버 페이지 쇼츠 탭: 세로 썸네일 칸. 누르면 쇼츠 화면에서 그 영상부터
+function shortsGrid(items, who) {
+  return `<div class="sh-grid">${items.map(it => `<a class="sh-tile" href="#/shorts/${esc(it.id)}" data-shwho="${esc(who)}">
+    ${shortThumb(it)}<span class="sh-tt">${esc(it.title || '')}</span></a>`).join('')}</div>`;
+}
+function shortsList() {
+  return Data.items.filter(i => i.kind === 'shorts' && (i.ytId || i.media) && (!state.shortsWho || i.members.includes(state.shortsWho)))
+    .sort((a, b) => (b.at > a.at ? 1 : -1));
+}
+function renderShorts(startId) {
+  const all = Data.items.filter(i => i.kind === 'shorts');
+  const who = Data.site.members.filter(m => all.some(i => i.members.includes(m.id)));
+  if (state.shortsWho && !who.some(m => m.id === state.shortsWho)) state.shortsWho = '';
+  const list = shortsList();
+  view.innerHTML = `
+    <header class="sh-top">
+      <span class="big">${esc(t('shorts.big'))}</span>
+      <div class="sh-chips">
+        <button type="button" class="chip ${state.shortsWho ? '' : 'on'}" data-shfilter="">${esc(t('shorts.all'))} <small>${all.length}</small></button>
+        ${who.map(m => `<button type="button" class="chip ${state.shortsWho === m.id ? 'on' : ''}" data-shfilter="${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}${esc(m.name)}</button>`).join('')}
+      </div>
+      <button type="button" class="btn sm solid" data-upload='${esc(JSON.stringify({ kind: 'shorts', members: state.shortsWho ? [state.shortsWho] : [] }))}'>${ICON.plus} ${esc(t('shorts.upload'))}</button>
+    </header>
+    ${list.length ? `<div class="sh-feed" id="shFeed">${list.map(it => {
+      const ms = it.members.map(id => Data.member(id)).filter(Boolean);
+      const fav = Favs.has(it.id);
+      return `<section class="sh-item" data-sh="${esc(it.id)}">
+        <div class="sh-card" style="--c:${esc(ms[0]?.color || 'var(--accent)')}">
+          <div class="sh-media">${shortThumb(it)}<div class="sh-play" aria-hidden="true">${ICON.play}</div></div>
+          <div class="sh-info">
+            <div class="sh-who">${ms.map(m => `<a href="#/m/${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}<b>${esc(m.name)}</b></a>`).join('')}</div>
+            <p>${esc(it.title || '')}</p>
+            ${it.by ? `<small>by ${esc(it.by)}</small>` : ''}
+          </div>
+        </div>
+        <div class="sh-acts">
+          <button type="button" class="star ${fav ? 'on' : ''}" data-fav="${esc(it.id)}" aria-pressed="${fav}" aria-label="${esc(t('list.star'))}">${fav ? ICON.star : ICON.starO}</button>
+          <a class="icon-btn" href="${esc(it.open || it.url)}" target="_blank" rel="noopener" aria-label="${esc(t('list.open'))}" title="${esc(t('list.open'))}">${ICON.ext}</a>
+          <button type="button" class="icon-btn" data-shcopy="${esc(it.id)}" aria-label="${esc(t('shorts.copy'))}" title="${esc(t('shorts.copy'))}">${ICON.copy || '⧉'}</button>
+          ${ownBtns(it).replace(/icon-btn sm/g, 'icon-btn')}
+        </div>
+      </section>`;
+    }).join('')}</div>
+    <div class="sh-nav"><button type="button" class="icon-btn" data-shnav="-1" aria-label="이전">${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 15l7-7 7 7')}</button><button type="button" class="icon-btn" data-shnav="1" aria-label="다음">${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 9l7 7 7-7')}</button></div>`
+    : emptyBox(esc(t('shorts.empty')), 'shorts', state.shortsWho ? [state.shortsWho] : [])}`;
+  Shorts.start(startId);
+}
+const Shorts = {
+  io: null, cur: null,
+  start(startId) {
+    this.io?.disconnect();
+    this.cur = null;
+    const feed = $('#shFeed');
+    if (!feed) return;
+    const first = startId && feed.querySelector(`[data-sh="${CSS.escape(startId)}"]`);
+    if (first) feed.scrollTop = first.offsetTop - feed.offsetTop;
+    this.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) this.show(e.target); }), { root: feed, threshold: 0.6 });
+    $$('.sh-item', feed).forEach(el => this.io.observe(el));
+  },
+  show(sec) {
+    if (this.cur === sec) return;
+    if (this.cur) this.unmount(this.cur);
+    this.cur = sec;
+    const it = Data.item(sec.dataset.sh);
+    if (!it) return;
+    if (Player.playing) Player.toggle(false); // 노래는 잠깐 멈춘다
+    const drive = it.hasDrive && (!it.ytId || Player.prefer === 'drive');
+    const box = $('.sh-media', sec);
+    box.insertAdjacentHTML('beforeend', drive
+      ? `<video class="sh-live" src="${esc(Player.fileUrl(it))}" autoplay loop playsinline controls></video>`
+      : `<iframe class="sh-live" src="https://www.youtube.com/embed/${esc(it.ytId)}?autoplay=1&playsinline=1&loop=1&playlist=${esc(it.ytId)}&rel=0&modestbranding=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="${esc(it.title || '쇼츠')}"></iframe>`);
+    history.replaceState(null, '', '#/shorts/' + it.id);
+  },
+  unmount(sec) { $$('.sh-live', sec).forEach(el => el.remove()); },
+  step(d) {
+    const feed = $('#shFeed');
+    if (feed) feed.scrollBy({ top: d * feed.clientHeight, behavior: 'smooth' });
+  },
+  stop() { this.io?.disconnect(); this.io = null; this.cur = null; },
+};
 
 /* ─── 홈 ─── */
 function renderHome() {
@@ -161,7 +252,7 @@ function footerHtml() {
           <div><img src="${esc(siteImg('logo', 200))}" alt="" data-ei="images.logo" data-pos="logo.footer">${esc(t('brand.name'))} <i>${esc(t('brand.sub'))}</i></div>
           <p>${th('footer.note')}</p>
         </div>
-        <nav aria-label="${esc(t('footer.archive'))}"><span class="kk">${esc(t('footer.archive'))}</span><a href="#/listen">${esc(t('nav.listen'))}</a><a href="#/group">${esc(t('nav.group'))}</a><a href="#/stars">${esc(t('nav.stars'))}</a></nav>
+        <nav aria-label="${esc(t('footer.archive'))}"><span class="kk">${esc(t('footer.archive'))}</span><a href="#/listen">${esc(t('nav.listen'))}</a><a href="#/shorts">${esc(t('nav.shorts'))}</a><a href="#/group">${esc(t('nav.group'))}</a><a href="#/stars">${esc(t('nav.stars'))}</a></nav>
         <nav aria-label="${esc(t('footer.contribute'))}"><span class="kk">${esc(t('footer.contribute'))}</span><a href="#" data-upload="{}">${esc(t('upload.title'))}</a><a href="#/about">About · ${esc(t('nav.about'))}</a><a href="admin.html">${esc(t('footer.admin'))}</a><a href="privacy.html">${esc(t('footer.privacy'))}</a></nav>
         <nav aria-label="${esc(t('footer.official'))}"><span class="kk">${esc(t('footer.official'))}</span><a href="https://stellive.me" target="_blank" rel="noopener">${esc(t('footer.officialSite'))}</a></nav>
       </div>
@@ -622,7 +713,7 @@ function renderAbout() {
 
 /* ─── 목차 ─── */
 const NAV = [
-  ['#/', 'nav.home', 'nav.homeEn'], ['#/calendar', 'nav.calendar', 'nav.calendarEn'], ['#/listen', 'nav.listen', 'nav.listenEn'],
+  ['#/', 'nav.home', 'nav.homeEn'], ['#/calendar', 'nav.calendar', 'nav.calendarEn'], ['#/listen', 'nav.listen', 'nav.listenEn'], ['#/shorts', 'nav.shorts', 'nav.shortsEn'],
   ['#/group', 'nav.group', 'nav.groupEn'], ['#/stars', 'nav.stars', 'nav.starsEn'], ['#/about', 'nav.about', 'nav.aboutEn'],
 ];
 function renderDrawer() {
@@ -757,6 +848,8 @@ function route(keepScroll) {
   lastPage = pageKey;
   view.classList.toggle('about-v', page === 'about');
   view.classList.toggle('play-v', page === 'play');
+  view.classList.toggle('shorts-v', page === 'shorts');
+  if (page !== 'shorts') Shorts.stop();
   if (page !== 'play') { Player.leavePage(); Glow.set(''); }
   if (!page) renderHome();
   else if (page === 'm') renderMember(decodeURIComponent(a || ''), b);
@@ -766,6 +859,7 @@ function route(keepScroll) {
   else if (page === 'stars') renderStars();
   else if (page === 'about') renderAbout();
   else if (page === 'play') renderPlay();
+  else if (page === 'shorts') renderShorts(decodeURIComponent(a || ''));
   else renderNotFound();
   ensureFoot();
   if (page === 'play' && $('#npSlot')) Player.enterPage($('#npSlot'));
@@ -865,6 +959,14 @@ document.addEventListener('click', e => {
     $('#cal').innerHTML = calendarHtml(location.hash.startsWith('#/calendar'));
     return;
   }
+  if ((el = tg.closest('[data-shfilter]'))) { state.shortsWho = el.dataset.shfilter; renderShorts(); ensureFoot(); return; }
+  if ((el = tg.closest('[data-shnav]'))) { Shorts.step(+el.dataset.shnav); return; }
+  if ((el = tg.closest('[data-shwho]'))) { state.shortsWho = el.dataset.shwho; return; } // 링크는 그대로 따라간다
+  if ((el = tg.closest('[data-shcopy]'))) {
+    const url = location.origin + location.pathname + '#/shorts/' + el.dataset.shcopy;
+    navigator.clipboard?.writeText(url).then(() => toast(tRaw('shorts.copied')), () => prompt('', url));
+    return;
+  }
   if (tg.closest('[data-close]') || tg.classList.contains('modal')) closeModals();
 });
 
@@ -872,6 +974,7 @@ document.addEventListener('keydown', e => {
   if (document.activeElement?.isContentEditable) return;
   if (Intro.isOpen()) { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); Intro.hide(); } return; }
   if (e.key === 'Escape') { closeModals(); Menu.closeDrawer(); Menu.setTop(false); }
+  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && $('#shFeed') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); Shorts.step(e.key === 'ArrowDown' ? 1 : -1); }
   if (e.key === ' ' && !Player.bar.hidden && !/INPUT|TEXTAREA|SELECT|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); Player.toggle(); }
 });
 

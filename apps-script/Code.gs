@@ -29,7 +29,7 @@ const GROUP_DIR   = '단체';
 const DUO_DIR     = '합방';
 const ALL_DIR     = '전체';
 const SYS_DIR     = '_사이트';
-const KINDS = { cover: '커버곡', original: '오리곡', album: '앨범', clip: '클립', fanart: '팬아트', meme: '짤' };
+const KINDS = { cover: '커버곡', original: '오리곡', album: '앨범', clip: '클립', shorts: '쇼츠', fanart: '팬아트', meme: '짤' };
 const GROUP_KINDS = ['cover', 'original', 'album', 'clip'];
 const CACHE_TTL = 21600; // 드라이브 목록 캐시 (초) — warmCache 가 10분마다 새로 채운다
 
