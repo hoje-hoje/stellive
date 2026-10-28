@@ -636,14 +636,10 @@ body.has-player #stage { display: block; }
   position: relative; display: grid; grid-template-columns: max(var(--vw), 480px) var(--side); justify-content: center; gap: 48px; align-items: start; }
 #npGlow { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .8s; overflow: hidden; }
 #npGlow.on { opacity: 1; }
-#npGlow i { position: absolute; inset: -12%; background: center / cover no-repeat; opacity: 0; transition: opacity 1.4s ease; filter: blur(90px) saturate(1.5); }
-#npGlow i.show { opacity: .34; }
-/* 밝은 테마는 영상 색을 파스텔로 — 어두운 영상이어도 화면이 칙칙해지지 않게 */
-[data-theme="lavender"] #npGlow i, [data-theme="white"] #npGlow i { filter: blur(90px) saturate(1.8) brightness(1.9) contrast(.75); }
-[data-theme="lavender"] #npGlow i.show, [data-theme="white"] #npGlow i.show { opacity: .5; }
-/* 썸네일이 없을 때 쓰는 멤버 색 */
-#npGlow i.col, [data-theme] #npGlow i.col { filter: blur(60px); }
-#npGlow i.col.show, [data-theme] #npGlow i.col.show { opacity: .55; }
+#npGlow i { position: absolute; inset: -12%; opacity: 0; transition: opacity 1.4s ease; filter: blur(50px); }
+#npGlow i.show { opacity: .55; }
+/* 밝은 테마는 조금 더 진하게 (린 곡을 틀었을 때 화면 전체가 파랗게 물드는 느낌) */
+[data-theme="lavender"] #npGlow i.show, [data-theme="white"] #npGlow i.show { opacity: .75; }
 .np-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .np-slot { width: 100%; aspect-ratio: 16 / 9; background: var(--bg); }
 #stage[data-view="page"], #stage[data-view="page"] .stage-body > video { background: var(--bg); }

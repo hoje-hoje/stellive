@@ -743,49 +743,42 @@ function renderPlay() {
 // 노래 창 배경: 지금 곡 썸네일을 크게 흐려 깔아서 영상 색이 화면 전체에 번지게 한다.
 // 이미 받아 둔 작은 썸네일 한 장만 쓰니 느려지지 않는다. 곡이 바뀌면 두 겹을 엇갈려 스르륵 바꾼다
 const Glow = {
-  url: '',
-  // url 이 없으면(썸네일 없는 곡) 부른 멤버 색으로 번지게 한다
-  set(url, color) {
+  key: '',
+  // 노래 창 배경은 부른 멤버의 고유 색으로 화면 전체를 물들인다. 여러 명이면 그 색들을 섞는다
+  set(colors) {
     const box = $('#npGlow');
-    if (!url && color) url = 'color:' + color;
-    box.classList.toggle('on', !!url);
-    if (!url || url === this.url) return;
-    this.url = url;
+    colors = (colors || []).filter(Boolean);
+    box.classList.toggle('on', colors.length > 0);
+    const key = colors.join(',');
+    if (!colors.length || key === this.key) return;
+    this.key = key;
     const [a, b] = $$('i', box);
-    const next0 = a.classList.contains('show') ? b : a;
-    if (url.startsWith('color:')) {
-      const c = url.slice(6);
-      next0.style.backgroundImage = `radial-gradient(70% 70% at 30% 35%, ${c}, transparent 72%), radial-gradient(60% 60% at 82% 72%, ${c}, transparent 72%)`;
-      next0.classList.add('show', 'col');
-      (next0 === a ? b : a).classList.remove('show');
-      return;
-    }
-    const next = next0, prev = next === a ? b : a;
-    const img = new Image();
-    // 썸네일이 안 열리면(드라이브가 아직 못 만든 경우 등) 멤버 색으로
-    img.onerror = () => { if (this.url === url) { this.url = ''; this.set('', color); } };
-    img.onload = () => {
-      if (this.url !== url) return;
-      next.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`;
-      next.classList.remove('col');
-      next.classList.add('show');
-      prev.classList.remove('show');
-    };
-    img.src = url;
+    const next = a.classList.contains('show') ? b : a, prev = next === a ? b : a;
+    next.style.backgroundImage = glowPaint(colors);
+    next.classList.add('show');
+    prev.classList.remove('show');
   },
 };
+function glowPaint(cs) {
+  const mix = (c, n) => `color-mix(in srgb, ${c} ${n}%, transparent)`;
+  if (cs.length === 1) {
+    const c = cs[0];
+    return `radial-gradient(60% 70% at 32% 40%, ${mix(c, 95)}, transparent 75%), radial-gradient(55% 60% at 80% 72%, ${mix(c, 80)}, transparent 75%), linear-gradient(160deg, ${mix(c, 55)}, ${mix(c, 35)})`;
+  }
+  // 여럿: 색마다 다른 자리에서 번지고, 바탕은 그 색들을 비스듬히 잇는다
+  const spots = [[25, 30], [78, 28], [70, 78], [22, 76], [50, 50], [90, 52], [10, 50]];
+  const blobs = cs.slice(0, 7).map((c, i) => `radial-gradient(48% 55% at ${spots[i][0]}% ${spots[i][1]}%, ${mix(c, 90)}, transparent 72%)`);
+  return [...blobs, `linear-gradient(120deg, ${cs.map(c => mix(c, 45)).join(', ')})`].join(', ');
+}
 
-// 노래 창 배경 고르기: 영상 썸네일이 어두운 무채색이면 배경을 칠하지 않고 원래 테마로 둔다 (mp3 표지는 그대로 쓴다)
+// 노래 창 배경 색: 부른 멤버 색 → 없으면 기수 색 → 전체 단체곡이면 사이트 색
 function playGlow() {
   const it = Player.current();
-  if (!it) return Glow.set('');
-  const color = Data.member(it.members[0])?.color || Data.group(it.group)?.color || 'var(--accent)';
-  const video = !(it.media === 'audio' && !it.ytId);
-  if (video && Tone.known(it) === true) return Glow.set('');
-  Glow.set(it.thumb || '', color);
-  if (video && Tone.known(it) === undefined) {
-    Tone.dull(it).then(dull => { if (dull && Player.current() === it && location.hash.startsWith('#/play')) Glow.set(''); });
-  }
+  if (!it) return Glow.set([]);
+  let cs = [...new Set(it.members.map(id => Data.member(id)?.color).filter(Boolean))];
+  if (!cs.length && it.group && it.group !== 'all') cs = [Data.group(it.group)?.color].filter(Boolean);
+  if (!cs.length) cs = ['var(--accent)'];
+  Glow.set(cs);
 }
 
 // 곡이 바뀌면 노래 창을 다시 그린다
@@ -1013,7 +1006,7 @@ function route(keepScroll) {
   view.classList.toggle('play-v', page === 'play');
   view.classList.toggle('shorts-v', page === 'shorts' || page === 'clips');
   if (page !== 'shorts' && page !== 'clips') { Feed.stop(); Comments.close(); }
-  if (page !== 'play') { Player.leavePage(); Glow.set(''); }
+  if (page !== 'play') { Player.leavePage(); Glow.set([]); }
   if (!page) renderHome();
   else if (page === 'm') renderMember(decodeURIComponent(a || ''), b);
   else if (page === 'group') renderGroup(a, b);
