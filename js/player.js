@@ -4,7 +4,7 @@
 const Player = {
   queue: [], idx: -1, label: '', shuffle: false, repeat: 'all',
   kind: '', // 'yt' | 'video' | 'frame'
-  yt: null, ytReady: null, playing: false, view: 'mini',
+  yt: null, ytReady: null, playing: false, view: 'mini', netTries: 0, lastPos: 0,
 
   init() {
     this.bar = $('#player');
@@ -17,6 +17,19 @@ const Player = {
     this.video.addEventListener('error', () => {
       const it = this.current();
       if (!it || this.kind !== 'video' || !this.video.getAttribute('src')) return;
+      // 와이파이가 잠깐 끊긴 거면 다른 곳으로 넘기지 말고 끊긴 자리부터 다시 받는다 (3번까지)
+      if (this.video.error?.code === 2 && this.netTries < 3) {
+        this.netTries++;
+        const src = this.video.getAttribute('src'), at = this.lastPos || 0;
+        toast(tRaw('player.retry'));
+        setTimeout(() => {
+          if (this.current() !== it) return;
+          this.video.addEventListener('loadedmetadata', () => { this.video.currentTime = at; }, { once: true });
+          this.video.src = src;
+          this.video.play().catch(() => {});
+        }, 1500 * this.netTries);
+        return;
+      }
       if (it.ytId && !this.tried.has('youtube')) return this.failover(tRaw('player.driveError'));
       if (it.driveId) { this.showFrame(it); toast(tRaw('player.frame')); }
     });
@@ -134,6 +147,9 @@ const Player = {
     this.idx = (i + this.queue.length) % this.queue.length;
     const it = this.current();
     this.tried = new Set();
+    this.nextIdx = null;
+    this.netTries = 0;
+    this.lastPos = 0;
     this.paintNow(it);
     this.paintQueue();
     this.changes.forEach(fn => fn(it));
@@ -147,6 +163,7 @@ const Player = {
     this.paintSource();
     $$('[data-np-src]').forEach(el => (el.textContent = src === 'youtube' ? 'YouTube' : 'Drive'));
     if (src === 'youtube') return this.playYT(it);
+    if (this.pre.has(it.id)) return this.playVideo(this.pre.get(it.id)); // 미리 받아 둔 곡
     if (it.directUrl) return this.playVideo(it.directUrl);
     if (it.driveId && CFG.driveApiKey) return this.playVideo(`https://www.googleapis.com/drive/v3/files/${it.driveId}?alt=media&key=${CFG.driveApiKey}`);
     if (it.driveId) return this.showFrame(it);
@@ -169,13 +186,74 @@ const Player = {
   next(auto) {
     if (!this.queue.length) return;
     if (auto && this.repeat === 'one') return this.go(this.idx);
-    if (this.shuffle && this.queue.length > 1) {
-      let n; do n = Math.floor(Math.random() * this.queue.length); while (n === this.idx);
-      return this.go(n);
-    }
+    if (this.shuffle && this.queue.length > 1) return this.go(this.shuffleNext());
     if (auto && this.repeat === 'off' && this.idx === this.queue.length - 1) return this.setPlaying(false);
     this.go(this.idx + 1);
   },
+  // 랜덤이어도 다음 곡을 미리 정해 둔다 (그래야 미리 받을 수 있다)
+  shuffleNext() {
+    if (this.nextIdx == null || this.nextIdx === this.idx || this.nextIdx >= this.queue.length) {
+      let n; do n = Math.floor(Math.random() * this.queue.length); while (n === this.idx);
+      this.nextIdx = n;
+    }
+    return this.nextIdx;
+  },
+  peekNext() {
+    if (!this.queue.length) return -1;
+    if (this.repeat === 'one') return this.idx;
+    if (this.shuffle && this.queue.length > 1) return this.shuffleNext();
+    if (this.repeat === 'off' && this.idx === this.queue.length - 1) return -1;
+    return (this.idx + 1) % this.queue.length;
+  },
+
+  /* ── 다음 곡 미리 받기 ──
+     학교 와이파이처럼 약한 곳에서도 끊기지 않게, 지금 곡이 다 받아진 뒤 다음 곡 드라이브 파일을 통째로 받아 둔다.
+     받아 둔 곡은 인터넷이 끊겨도 처음부터 끝까지 나온다. 유튜브로 트는 곡은 미리 받을 수 없다 */
+  pre: new Map(), // 곡 id → 받아 둔 파일 주소(blob:)
+  preJob: null,
+  fileUrl(it) {
+    if (it.directUrl) return it.directUrl;
+    if (it.driveId && CFG.driveApiKey) return `https://www.googleapis.com/drive/v3/files/${it.driveId}?alt=media&key=${CFG.driveApiKey}`;
+    return '';
+  },
+  prefetchNext() {
+    const n = this.peekNext();
+    const it = n >= 0 ? this.queue[n] : null;
+    if (!it || it === this.current() || this.pre.has(it.id) || this.preJob?.id === it.id) return;
+    if (!it.hasDrive && !it.directUrl) return;
+    if (it.ytId && this.prefer !== 'drive') return;
+    const url = this.fileUrl(it);
+    if (!url) return;
+    this.preJob?.ctl.abort();
+    const ctl = new AbortController();
+    const job = (this.preJob = { id: it.id, ctl });
+    fetch(url, { signal: ctl.signal })
+      .then(r => {
+        if (!r.ok) throw new Error(r.status);
+        if (+r.headers.get('content-length') > 300e6) { ctl.abort(); throw new Error('big'); } // 너무 큰 영상은 그냥 실시간으로
+        return r.blob();
+      })
+      .then(blob => { this.keep(it.id, URL.createObjectURL(blob)); this.paintQueue(); })
+      .catch(() => { job.failed = true; });
+  },
+  // 지금 곡과 다음 곡 것만 남기고 나머지는 메모리에서 비운다
+  keep(id, url) {
+    this.pre.set(id, url);
+    const keepIds = new Set([this.current()?.id, this.queue[this.peekNext()]?.id, id]);
+    for (const [k, u] of this.pre) if (!keepIds.has(k)) { URL.revokeObjectURL(u); this.pre.delete(k); }
+  },
+  // 지금 곡이 다 받아졌으면(유튜브는 몇 초 지나면) 다음 곡을 받기 시작한다
+  maybePrefetch() {
+    if (!this.playing || (this.preJob && !this.preJob.failed && !this.pre.has(this.preJob.id))) return;
+    if (this.kind === 'video') {
+      const v = this.video, d = v.duration;
+      const local = (v.getAttribute('src') || '').startsWith('blob:');
+      const full = local || (d && v.buffered.length && v.buffered.end(v.buffered.length - 1) >= d - 1);
+      if (!full) return;
+    } else if (this.position() < 5) return;
+    this.prefetchNext();
+  },
+
   prev() {
     if (this.position() > 4) return this.seekTo(0);
     this.go(this.idx - 1);
@@ -308,6 +386,8 @@ const Player = {
     const f = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
     $('#pTime').textContent = d ? `${f(p)} / ${f(d)}` : '';
     if (document.activeElement !== $('#pSeek')) $('#pSeek').value = d ? Math.round((p / d) * 1000) : 0;
+    if (p > 0) this.lastPos = p;
+    this.maybePrefetch();
   },
 
   /* ── 그리기 ── */
@@ -328,7 +408,9 @@ const Player = {
   },
   paintSource() {
     const el = $('#pSrc');
-    if (el) el.textContent = this.source === 'youtube' ? 'YouTube' : 'Drive';
+    const local = this.current() && this.pre.has(this.current().id) && this.source !== 'youtube';
+    if (el) el.textContent = this.source === 'youtube' ? 'YouTube' : local ? 'Drive ✓' : 'Drive';
+    if (el) el.title = local ? tRaw('player.local') : '';
   },
   paintFav() {
     const it = this.current();
@@ -350,7 +432,7 @@ const Player = {
       <li data-qi="${i}" class="${i === this.idx ? 'now' : ''}">
         <span class="q-n">${i === this.idx ? ICON.play : i + 1}</span>
         <span class="q-t">${esc(it.title)}</span>
-        <span class="q-m">${esc(it.members.map(id => Data.member(id)?.name).filter(Boolean).join(' · '))}</span>
+        <span class="q-m">${esc(it.members.map(id => Data.member(id)?.name).filter(Boolean).join(' · '))}${this.pre.has(it.id) ? ` · ✓ ${esc(tRaw('player.ready'))}` : ''}</span>
       </li>`).join('');
   },
 };
