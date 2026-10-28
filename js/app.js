@@ -375,6 +375,7 @@ function renderListen() {
     state.search = inp.value;
     const pos = inp.selectionStart;
     renderListen();
+    ensureFoot();
     const again = $('#songSearch');
     again.focus();
     again.setSelectionRange(pos, pos);
@@ -397,6 +398,64 @@ function renderCalendarPage() {
   view.innerHTML = `
     <header class="page-h"><span class="big">${esc(t('cal.big'))}</span><span class="ko">${esc(t('cal.ko'))}</span><p>${esc(t('cal.desc'))}</p></header>
     <section id="cal">${calendarHtml(true)}</section>`;
+}
+
+/* ─── 노래 창 ─── */
+function renderPlay() {
+  const it = Player.current();
+  if (!it) {
+    view.innerHTML = `<header class="page-h"><span class="big">${esc(t('np.k'))}</span><span class="ko">${esc(t('np.ko'))}</span><p>${esc(t('np.empty'))}</p></header>
+      <div><a class="btn solid" href="#/listen">${ICON.play} ${esc(t('np.go'))}</a></div>`;
+    return;
+  }
+  const g = it.group && Data.group(it.group);
+  const who = it.members.map(id => Data.member(id)).filter(Boolean);
+  const q = Player.queue;
+  const fav = Favs.has(it.id);
+  view.innerHTML = `
+    <section class="np">
+      ${it.thumb ? `<div class="np-glow" style="background-image:url(&quot;${esc(it.thumb)}&quot;)" aria-hidden="true"></div>` : ''}
+      <div class="np-main">
+        <div class="np-slot" id="npSlot"></div>
+        <div class="np-under">
+          <a href="#" data-np-back>${ICON.chevL} ${esc(t('np.back'))}</a>
+          <button type="button" data-np-mini>${esc(t('np.mini'))}</button>
+        </div>
+      </div>
+      <aside class="np-side">
+        <span class="kk">${esc(t('np.k'))} · ${esc(t('np.of', { n: String(Player.idx + 1).padStart(2, '0'), total: String(q.length).padStart(2, '0') }))}</span>
+        <h1 class="np-title">${esc(it.title || '(제목 없음)')}</h1>
+        <div class="np-who">
+          ${who.map(m => `<a href="#/m/${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}<b>${esc(m.name)}</b></a>`).join('')}
+          ${g ? `<a href="#/group/${esc(g.id)}" class="np-g" style="--c:${esc(g.color || 'var(--accent)')}"><i>${esc(g.name)}</i></a>` : ''}
+        </div>
+        <div class="np-meta">
+          <span>${esc(KIND[it.kind]?.name || '')}</span>
+          <span data-np-src>${Player.source === 'drive' ? 'Drive' : 'YouTube'}</span>
+          ${Player.label ? `<span>${esc(Player.label)}</span>` : ''}
+        </div>
+        <div class="np-acts">
+          <button type="button" class="icon-btn ${fav ? 'on' : ''}" data-fav="${esc(it.id)}" aria-pressed="${fav}" aria-label="${esc(t('np.fav'))}">${fav ? ICON.star : ICON.starO}</button>
+          ${it.url ? `<a class="btn line" href="${esc(it.url)}" target="_blank" rel="noopener">${esc(t('np.src'))} ${ICON.ext}</a>` : ''}
+        </div>
+        <div class="np-q-h"><span class="kk">${esc(t('np.nextK'))}</span><b>${esc(t('np.next'))}</b><small>${esc(t('list.count', { n: q.length }))}</small></div>
+        <ol class="np-q">${q.map((x, i) => `
+          <li data-npq="${i}" class="${i === Player.idx ? 'now' : ''}">
+            <span class="q-n">${i === Player.idx ? ICON.play : i + 1}</span>
+            <span class="np-qt"><b>${esc(x.title)}</b><small>${esc(memberNames(x).join(' · '))}</small></span>
+          </li>`).join('')}</ol>
+      </aside>
+    </section>`;
+  // 지금 곡이 목록 위쪽에 보이게
+  const now = $('.np-q .now'), ol = $('.np-q');
+  if (now) ol.scrollTop += now.getBoundingClientRect().top - ol.getBoundingClientRect().top - 8;
+}
+// 곡이 바뀌면 노래 창을 다시 그린다
+Player.onChange(() => { if (location.hash.startsWith('#/play')) route(true); });
+
+// 맨 아래 줄은 모든 화면에 붙인다
+function ensureFoot() {
+  if (!view.querySelector(':scope > .foot')) view.insertAdjacentHTML('beforeend', footerHtml());
 }
 
 function renderNotFound() {
@@ -605,6 +664,8 @@ function route(keepScroll) {
   if (pageKey === lastPage) keepScroll = true;
   lastPage = pageKey;
   view.classList.toggle('about-v', page === 'about');
+  view.classList.toggle('play-v', page === 'play');
+  if (page !== 'play') Player.leavePage();
   if (!page) renderHome();
   else if (page === 'm') renderMember(decodeURIComponent(a || ''), b);
   else if (page === 'group') renderGroup(a, b);
@@ -612,7 +673,10 @@ function route(keepScroll) {
   else if (page === 'calendar') renderCalendarPage();
   else if (page === 'stars') renderStars();
   else if (page === 'about') renderAbout();
+  else if (page === 'play') renderPlay();
   else renderNotFound();
+  ensureFoot();
+  if (page === 'play' && $('#npSlot')) Player.enterPage($('#npSlot'));
   markNav();
   applyPositions(view);
   Menu.closeDrawer();
@@ -667,12 +731,15 @@ document.addEventListener('click', e => {
     if (mode === 'newest') { Player.shuffle = false; Player.paintModes(); Player.play(music, null, t('listen.newest')); }
     return;
   }
-  if (tg.closest('[data-prefer]')) { Player.setPrefer(Player.prefer === 'drive' ? 'youtube' : 'drive'); renderListen(); return; }
+  if (tg.closest('[data-prefer]')) { Player.setPrefer(Player.prefer === 'drive' ? 'youtube' : 'drive'); renderListen(); ensureFoot(); return; }
+  if ((el = tg.closest('[data-npq]'))) { Player.go(+el.dataset.npq); return; }
+  if (tg.closest('[data-np-back]')) { e.preventDefault(); Player.togglePage(); return; }
+  if (tg.closest('[data-np-mini]')) { Player.pageFrom = 'mini'; Player.togglePage(); return; }
   if ((el = tg.closest('[data-lk]'))) {
     const k = el.dataset.lk;
     state.listenKinds.has(k) ? state.listenKinds.delete(k) : state.listenKinds.add(k);
     if (!state.listenKinds.size) state.listenKinds.add(k);
-    return renderListen();
+    renderListen(); return ensureFoot();
   }
   if (tg.closest('[data-intro]')) { Intro.show(); return; }
   if ((el = tg.closest('[data-guide]'))) {
@@ -861,6 +928,8 @@ $('[data-p="next"]').innerHTML = ICON.next;
 $('[data-p="repeat"]').innerHTML = ICON.repeat;
 $('[data-p="hide"]').innerHTML = ICON.video;
 $('[data-p="queue"]').innerHTML = ICON.menu;
+$('.icon-btn[data-p="page"]').innerHTML = ICON.expand;
+$('.icon-btn[data-p="page"]').title = tRaw('player.open');
 $$('.close').forEach(b => (b.innerHTML = ICON.close));
 Player.setPlaying(false);
 Player.paintModes();

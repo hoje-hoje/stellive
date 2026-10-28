@@ -35,11 +35,17 @@ const Player = {
       if (a === 'hide') this.setView(this.view === 'hidden' ? 'mini' : 'hidden');
       if (a === 'queue') $('#queue').classList.toggle('open');
       if (a === 'prefer') this.setPrefer(this.prefer === 'drive' ? 'youtube' : 'drive');
+      if (a === 'page') this.togglePage();
     });
     $('#stage').addEventListener('click', e => {
       const b = e.target.closest('[data-s]');
-      if (b) this.setView(b.dataset.s);
+      if (!b) return;
+      if (b.dataset.s === 'page') this.togglePage();
+      else this.setView(b.dataset.s);
     });
+    // 노래 창에서는 영상 창을 페이지 안의 자리에 맞춰 놓는다
+    this.slotWatch = new ResizeObserver(() => this.place());
+    addEventListener('resize', () => this.place());
     $('#queue').addEventListener('click', e => {
       const r = e.target.closest('[data-qi]');
       if (r) this.go(+r.dataset.qi);
@@ -94,6 +100,7 @@ const Player = {
     this.tried = new Set();
     this.paintNow(it);
     this.paintQueue();
+    this.changes.forEach(fn => fn(it));
     this.playSource(it, this.prefer === 'drive' && it.hasDrive ? 'drive' : it.ytId ? 'youtube' : 'drive');
   },
 
@@ -101,6 +108,7 @@ const Player = {
     this.tried.add(src);
     this.source = src;
     this.paintSource();
+    $$('[data-np-src]').forEach(el => (el.textContent = src === 'youtube' ? 'YouTube' : 'Drive'));
     if (src === 'youtube') return this.playYT(it);
     if (it.directUrl) return this.playVideo(it.directUrl);
     if (it.driveId && CFG.driveApiKey) return this.playVideo(`https://www.googleapis.com/drive/v3/files/${it.driveId}?alt=media&key=${CFG.driveApiKey}`);
@@ -217,10 +225,39 @@ const Player = {
     if (this.kind === 'video') this.video.currentTime = t;
   },
 
+  /* ── 노래 창 (#/play) ── */
+  changes: [],
+  onChange(fn) { this.changes.push(fn); },
+  togglePage() {
+    if (location.hash.startsWith('#/play')) history.length > 1 ? history.back() : (location.hash = '#/listen');
+    else location.hash = '#/play';
+  },
+  enterPage(slot) {
+    if (this.view !== 'page') this.pageFrom = this.view;
+    this.slot = slot;
+    this.slotWatch.disconnect();
+    this.slotWatch.observe(slot);
+    this.setView('page');
+    this.place();
+  },
+  leavePage() {
+    if (this.view !== 'page') return;
+    this.slotWatch.disconnect();
+    this.slot = null;
+    ['left', 'top', 'width'].forEach(k => (this.stage.style[k] = ''));
+    this.setView(this.pageFrom && this.pageFrom !== 'page' ? this.pageFrom : 'mini');
+  },
+  place() {
+    if (this.view !== 'page' || !this.slot?.isConnected) return;
+    const r = this.slot.getBoundingClientRect();
+    Object.assign(this.stage.style, { left: r.left + scrollX + 'px', top: r.top + scrollY + 'px', width: r.width + 'px' });
+  },
+
   setView(v) {
     this.view = v;
     this.stage.dataset.view = v;
     $('[data-p="hide"]', this.bar).classList.toggle('on', v !== 'hidden');
+    $('[data-p="page"].icon-btn', this.bar).classList.toggle('on', v === 'page');
   },
   setPlaying(p) {
     this.playing = p;

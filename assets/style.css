@@ -529,6 +529,54 @@ body.has-player #stage { display: block; }
 #ytWrap iframe { width: 100%; height: 100%; }
 #stage[data-kind="yt"] #ytWrap, #stage[data-kind="video"] video, #stage[data-kind="frame"] iframe { display: block; }
 
+#stage[data-view="page"] { position: absolute; right: auto; bottom: auto; z-index: 40; border: 0; transition: none; box-shadow: 0 30px 90px rgba(0,0,0,.45); }
+#stage[data-view="page"] .stage-bar { display: none; }
+#player [data-p="page"]:not(.icon-btn) { cursor: pointer; }
+#pThumb { border: 0; padding: 0; }
+.p-txt { min-width: 0; display: flex; flex-direction: column; }
+.p-txt:hover #pTitle { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ══ 노래 창 ══ */
+#view.play-v { max-width: 1760px; padding-top: 84px; gap: 40px; }
+.np { --side: clamp(300px, 25vw, 420px); --vw: min(calc(100vw - 80px - 48px - var(--side)), calc((100vh - 84px - var(--player) - 70px) * 16 / 9), 1440px);
+  position: relative; display: grid; grid-template-columns: max(var(--vw), 480px) var(--side); justify-content: center; gap: 48px; align-items: start; }
+.np-glow { position: fixed; inset: -10%; z-index: -1; background: center / cover no-repeat; filter: blur(90px) saturate(1.5); opacity: .32; pointer-events: none; }
+.np-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.np-slot { width: 100%; aspect-ratio: 16 / 9; background: #000; }
+.np-under { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 14px; color: var(--dim); }
+.np-under a, .np-under button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; color: inherit; }
+.np-under a svg { width: 16px; height: 16px; }
+.np-under a:hover, .np-under button:hover { color: var(--fg); }
+.np-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; max-height: calc(100vh - 84px - var(--player) - 24px); padding-top: 8px; }
+.np-title { font-family: var(--batang); font-weight: 400; font-size: clamp(24px, 2.1vw, 34px); line-height: 1.35; word-break: keep-all; overflow-wrap: anywhere; }
+.np-who { display: flex; flex-wrap: wrap; gap: 8px; }
+.np-who a { display: inline-flex; align-items: center; gap: 8px; padding: 4px 14px 4px 4px; border: 1px solid var(--line2); border-radius: 999px; font-size: 15px; }
+.np-who a:hover { background: var(--today); }
+.np-who .np-g { padding: 6px 14px; font-family: var(--bodoni); font-style: italic; }
+.np-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--dim); }
+.np-meta span + span::before { content: '·'; margin-right: 14px; }
+.np-meta [data-np-src] { font-family: var(--bodoni); letter-spacing: .14em; }
+.np-acts { display: flex; align-items: center; gap: 10px; }
+.np-acts .icon-btn { border: 1px solid var(--line2); }
+.np-acts .icon-btn.on { color: #e6b422; }
+.np-q-h { display: flex; align-items: baseline; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.np-q-h b { font-family: var(--batang); font-weight: 400; font-size: 18px; }
+.np-q-h small { margin-left: auto; color: var(--dim); font-size: 12px; }
+.np-q { list-style: none; padding: 0; margin: 0 -10px; overflow-y: auto; min-height: 120px; flex: 1 1 auto; scrollbar-width: thin; overscroll-behavior: contain; }
+.np-q li { display: grid; grid-template-columns: 30px 1fr; gap: 8px; align-items: center; padding: 8px 10px; cursor: pointer; }
+.np-q li:hover, .np-q li.now { background: var(--today); }
+.np-q li.now b { color: var(--accent); }
+.np-q .q-n svg { width: 14px; height: 14px; color: var(--accent); }
+.np-qt { min-width: 0; display: flex; flex-direction: column; }
+.np-qt b { font-weight: 400; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.np-qt small { font-size: 11px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 820px) {
+  #view.play-v { padding-top: 72px; }
+  .np { grid-template-columns: 1fr; gap: 24px; }
+  .np-side { padding-top: 0; max-height: none; }
+  .np-q { max-height: 50vh; }
+}
+
 #player { position: fixed; left: 0; right: 0; bottom: 0; z-index: 55; height: var(--player); background: var(--bar); border-top: 1px solid var(--line2); backdrop-filter: blur(16px); }
 #pSeek { position: absolute; left: 0; right: 0; top: -7px; width: 100%; height: 14px; -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
 #pSeek::-webkit-slider-runnable-track { height: 3px; background: var(--line2); }

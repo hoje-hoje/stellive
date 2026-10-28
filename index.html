@@ -77,6 +77,7 @@
 <!-- 영상 창 -->
 <div id="stage" data-view="mini" data-kind="">
   <div class="stage-bar">
+    <button type="button" data-s="page" title="노래 창" aria-label="노래 창으로 크게 보기">⛶</button>
     <button type="button" data-s="big" title="크게" aria-label="크게">⤢</button>
     <button type="button" data-s="mini" title="작게" aria-label="작게">▭</button>
     <button type="button" data-s="hidden" title="숨기기 (소리는 계속)" aria-label="숨기기">—</button>
@@ -93,8 +94,8 @@
   <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="재생 위치">
   <div class="p-row">
     <div class="p-now">
-      <span id="pThumb"></span>
-      <div><b id="pTitle"></b><small id="pSub"></small></div>
+      <button type="button" id="pThumb" data-p="page" aria-label="노래 창 열기"></button>
+      <div data-p="page" class="p-txt"><b id="pTitle"></b><small id="pSub"></small></div>
       <button type="button" class="icon-btn" data-p="fav" title="별표"></button>
     </div>
     <div class="p-ctl">
@@ -108,6 +109,7 @@
       <span id="pSrc"></span>
       <button type="button" class="chip-btn" data-p="prefer"></button>
       <span id="pTime"></span>
+      <button type="button" class="icon-btn" data-p="page" title="노래 창" aria-label="노래 창"></button>
       <button type="button" class="icon-btn on" data-p="hide" title="영상 창 보이기/숨기기" aria-label="영상 창"></button>
       <button type="button" class="icon-btn" data-p="queue" title="재생 목록" aria-label="재생 목록"></button>
     </div>
