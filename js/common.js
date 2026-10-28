@@ -86,12 +86,6 @@ function enrich(it) {
     const alt = driveId(it.alt);
     if (alt && !it.driveId) { it.driveId = alt; it.media ||= mediaKind(); it.thumb ||= driveThumb(alt); }
   }
-  // mp3 같은 소리 파일은 드라이브 썸네일이 없으니 부른 멤버 프로필 사진을 쓴다
-  if (it.media === 'audio' && !it.ytId) {
-    const m = Data.site?.members?.find(x => x.id === it.members?.[0]);
-    const src = m && typeof firstSrc === 'function' ? firstSrc(m.avatar) : '';
-    it.thumb = src ? imgUrl(src, 480) : '';
-  }
   it.hasDrive = !!(it.driveId && it.media);
   it.playable = !!(it.ytId || it.media);
   it._ok = true;
@@ -187,6 +181,7 @@ const Data = {
     site.groups ||= []; site.members ||= []; site.events ||= []; site.banner ||= {};
     this.site = site;
     this.items = (items || []).map(enrich);
+    audioThumbs(this.items, site);
     this.emit();
   },
 
@@ -202,6 +197,21 @@ const Data = {
   // 단체: 기수 단체곡이거나, 멤버가 두 명 이상인 것
   isGroupItem(i) { return !!i.group || i.members.length >= 2; },
 };
+
+/* mp3 같은 소리 파일은 드라이브 썸네일이 없다.
+   관리자 설정(audioCover)에 따라 그 멤버 팬아트 중 하나(들어올 때마다 랜덤) 또는 프로필 사진을 표지로 쓴다 */
+function audioThumbs(items, site) {
+  const arts = {};
+  items.forEach(i => { if (i.kind === 'fanart' && i.thumb) i.members.forEach(m => (arts[m] ||= []).push(i.thumb)); });
+  items.forEach(it => {
+    if (it.media !== 'audio' || it.ytId) return;
+    const mid = it.members[0] || site.members.find(m => m.group === it.group)?.id;
+    const m = site.members.find(x => x.id === mid);
+    const prof = m && firstSrc(m.avatar) ? imgUrl(firstSrc(m.avatar), 640) : '';
+    const pool = arts[mid] || [];
+    it.thumb = (site.audioCover || 'fanart') === 'fanart' && pool.length ? pool[Math.floor(Math.random() * pool.length)] : prof;
+  });
+}
 
 /* ─── 서버 요청 ─── */
 async function api(action, payload = {}) {
