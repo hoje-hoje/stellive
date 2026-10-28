@@ -578,8 +578,23 @@ function renderMember(id, tab) {
 }
 
 /* ─── 단체 · 합방 ─── */
+// 단체 화면 팬아트 탭: 멤버 구분 없이 전부 섞어서 (들어올 때마다 새로 섞는다)
+const GROUP_TABS = [...GROUP_KINDS, 'fanart'];
+const fanMix = {};
+function groupFanart(gid) {
+  let list = Data.items.filter(i => i.kind === 'fanart');
+  if (gid === 'duo') list = list.filter(i => i.members.length >= 2);
+  else if (gid !== 'all') { const ids = Data.membersOf(gid).map(m => m.id); list = list.filter(i => i.group === gid || i.members.some(x => ids.includes(x))); }
+  const key = gid, ids = list.map(i => i.id);
+  if (pageFresh || !fanMix[key] || fanMix[key].length !== ids.length || ids.some(x => !fanMix[key].includes(x))) {
+    for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+    fanMix[key] = ids;
+  }
+  return fanMix[key].map(id => list.find(i => i.id === id));
+}
+
 function renderGroup(gid, tab) {
-  tab = GROUP_KINDS.includes(tab) ? tab : 'cover';
+  tab = GROUP_TABS.includes(tab) ? tab : 'cover';
   gid = gid || 'all';
   const groups = Data.site.groups.filter(g => Data.membersOf(g.id).length > 1);
   let pool = Data.items.filter(i => Data.isGroupItem(i));
@@ -588,7 +603,8 @@ function renderGroup(gid, tab) {
     const ids = Data.membersOf(gid).map(m => m.id);
     pool = pool.filter(i => i.group === gid || (!i.group && i.members.length >= 2 && i.members.every(x => ids.includes(x))));
   }
-  const items = pool.filter(i => i.kind === tab);
+  const fans = groupFanart(gid);
+  const items = tab === 'fanart' ? fans : pool.filter(i => i.kind === tab);
   const g = Data.group(gid);
   view.innerHTML = `
     <header class="page-h"><span class="big">${esc(t('group.big'))}</span><span class="ko">${esc(t('group.ko'))}</span></header>
@@ -597,7 +613,7 @@ function renderGroup(gid, tab) {
       ${groups.map(x => `<a href="#/group/${x.id}/${tab}" class="${gid === x.id ? 'on' : ''}"><b>${genNo(x)}</b><i>${esc(x.name)}</i></a>`).join('')}
       <a href="#/group/duo/${tab}" class="${gid === 'duo' ? 'on' : ''}"><b>${esc(t('group.duo'))}</b><i>${esc(t('group.duoKo'))}</i></a>
     </nav>
-    <nav class="tabs" aria-label="종류">${GROUP_KINDS.map(k => `<a href="#/group/${gid}/${k}" class="${tab === k ? 'on' : ''}"><span class="ko">${esc(KIND[k].name)}</span><i>${esc(KIND[k].en)}</i><small>${pool.filter(i => i.kind === k).length || ''}</small></a>`).join('')}</nav>
+    <nav class="tabs" aria-label="종류">${GROUP_TABS.map(k => `<a href="#/group/${gid}/${k}" class="${tab === k ? 'on' : ''}"><span class="ko">${esc(KIND[k].name)}</span><i>${esc(KIND[k].en)}</i><small>${(k === 'fanart' ? fans.length : pool.filter(i => i.kind === k).length) || ''}</small></a>`).join('')}</nav>
     <div>
       <div class="list-tools"><button type="button" class="btn sm line" data-upload='${esc(JSON.stringify({ kind: tab, group: g ? g.id : gid === 'all' ? 'all' : '', members: [] }))}'>${esc(t('list.add', { kind: KIND[tab].name }))}</button></div>
       <div style="margin-top:72px">${itemsBlock(tab, items, `${g ? g.label : gid === 'duo' ? t('group.duoKo') : t('group.ko')} ${KIND[tab].name}`, { group: g?.id, members: [] })}</div>
