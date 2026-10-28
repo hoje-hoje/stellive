@@ -570,3 +570,98 @@ function classifyOld_(name, folderText, baseKind, site, extra) {
   const title = name.replace(/\.[^.]+$/, '').replace(/_MP3( \(\d+\))?$/i, '').trim();
   return { kind: kind, members: members, group: group, title: title };
 }
+
+/* ─── 멤버 링크 자동으로 찾기 (치지직 · 유튜브 · X) ───
+   findLinksPreview() 로 찾은 결과를 로그로 먼저 보고, 맞으면 findLinks() 로 사이트에 넣는다.
+   이미 적혀 있는 링크는 건드리지 않는다. 틀린 게 있으면 편집 모드에서 그 칸만 고치면 된다.
+   1) 치지직 검색에서 이름이 맞는 채널(공식 인증 우선)  2) 그 채널 소개글 속 유튜브·X 주소
+   3) 없으면 유튜브 채널 검색  4) 그 유튜브 채널 정보 속 X 주소 */
+const AGENCY_X = ['stellive_kr', 'stellive_official', 'stellive_jp', 'stellive'];
+function findLinksPreview() { findLinks_(true); }
+function findLinks() { findLinks_(false); }
+
+function findLinks_(dry) {
+  const file = DriveApp.getFileById(props.getProperty('SITE_FILE_ID'));
+  const before = file.getBlob().getDataAsString();
+  const site = JSON.parse(before);
+  const log = [];
+  site.members.forEach(m => {
+    m.links = m.links || {};
+    const names = [m.fullName, (NAME_ALIASES[m.id] || [])[0], m.name].filter(Boolean);
+    const found = { chzzk: '', youtube: '', x: '' };
+    try {
+      const ch = chzzkFind_(names);
+      if (ch) {
+        found.chzzk = 'https://chzzk.naver.com/' + ch.channelId;
+        const desc = chzzkDesc_(ch.channelId);
+        found.youtube = ytFromText_(desc);
+        found.x = xFromText_(desc);
+      }
+      let ytId = '';
+      if (!found.youtube) { const y = ytFind_(names); if (y) { found.youtube = y.url; ytId = y.id; } }
+      if (!found.x && (ytId || found.youtube)) found.x = xFromText_(fetchText_(ytId ? `https://www.youtube.com/channel/${ytId}/about` : found.youtube + '/about'));
+    } catch (e) { log.push(`${m.name}: 찾다가 오류 — ${e.message}`); }
+    const line = [];
+    ['chzzk', 'youtube', 'x'].forEach(k => {
+      if (m.links[k]) { line.push(`${k}: (이미 있음) ${m.links[k]}`); return; }
+      line.push(`${k}: ${found[k] || '못 찾음'}`);
+      if (found[k] && !dry) m.links[k] = found[k];
+    });
+    log.push(`■ ${m.fullName || m.name}\n   ` + line.join('\n   '));
+  });
+  if (!dry) {
+    backupSite_(before, { name: '링크 자동 찾기' });
+    file.setContent(JSON.stringify(site, null, 2));
+  }
+  Logger.log((dry ? '[미리보기 — 아직 안 넣었다]\n' : '[사이트에 넣었다]\n') + log.join('\n'));
+}
+
+function fetchText_(url) {
+  const r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36', 'Accept-Language': 'ko-KR,ko;q=0.9' } });
+  return r.getResponseCode() === 200 ? r.getContentText() : '';
+}
+const squash_ = s => String(s || '').replace(/\s+/g, '').toLowerCase();
+
+function chzzkFind_(names) {
+  for (const n of names) {
+    const txt = fetchText_('https://api.chzzk.naver.com/service/v1/search/channels?keyword=' + encodeURIComponent(n) + '&offset=0&size=10');
+    if (!txt) continue;
+    const list = ((JSON.parse(txt).content || {}).data || []).map(d => d.channel).filter(Boolean);
+    const hit = list.filter(c => squash_(c.channelName).indexOf(squash_(n)) >= 0)
+      .sort((a, b) => (b.verifiedMark ? 1 : 0) - (a.verifiedMark ? 1 : 0) || (b.followerCount || 0) - (a.followerCount || 0))[0];
+    if (hit) return hit;
+  }
+  return null;
+}
+function chzzkDesc_(id) {
+  const txt = fetchText_('https://api.chzzk.naver.com/service/v1/channels/' + id);
+  if (!txt) return '';
+  const c = JSON.parse(txt).content || {};
+  return [c.channelDescription, JSON.stringify(c.channelLinks || c.links || '')].join('\n');
+}
+function ytFromText_(t) {
+  const m = String(t || '').match(/https?:\/\/(?:www\.)?youtube\.com\/(@[\w.\-%가-힣]+|channel\/UC[\w-]+)/);
+  return m ? 'https://www.youtube.com/' + m[1] : '';
+}
+function xFromText_(t) {
+  const s = decodeURIComponent(String(t || '').replace(/\\u0026/g, '&'));
+  const re = /(?:x|twitter)\.com\/([A-Za-z0-9_]{2,15})(?![A-Za-z0-9_])/g;
+  let m;
+  while ((m = re.exec(s))) {
+    const h = m[1];
+    if (/^(intent|share|home|search|i|hashtag|login|signup)$/i.test(h) || AGENCY_X.indexOf(h.toLowerCase()) >= 0) continue;
+    return 'https://x.com/' + h;
+  }
+  return '';
+}
+function ytFind_(names) {
+  for (const n of names) {
+    const html = fetchText_('https://www.youtube.com/results?sp=EgIQAg%253D%253D&search_query=' + encodeURIComponent(n));
+    const re = /"channelRenderer":\{"channelId":"(UC[\w-]+)","title":\{"simpleText":"([^"]+)"\}[\s\S]{0,4000}?"canonicalBaseUrl":"(\/@[^"]+)"/g;
+    let m;
+    while ((m = re.exec(html))) {
+      if (squash_(m[2]).indexOf(squash_(n)) >= 0) return { id: m[1], url: 'https://www.youtube.com' + decodeURIComponent(m[3]) };
+    }
+  }
+  return null;
+}
