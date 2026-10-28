@@ -241,39 +241,43 @@ const Player = {
     if (it.driveId) return this.showFrame(it);
   },
 
-  /* 끊김 없이: 저장소에 있으면 바로, 없으면 끝까지 받은 뒤 튼다 (받는 동안 진행률 표시).
-     "받으면서 바로 틀기"로 바꿔 두면 예전처럼 실시간으로 튼다 */
+  /* 끊김 없이: 저장소에 있으면 바로 튼다.
+     없으면 바로 실시간으로 틀기 시작하고(기다리지 않게), 뒤에서 파일을 끝까지 받아서
+     다 받아지면 같은 자리에서 받은 파일로 갈아탄다 → 그 뒤로는 와이파이가 끊겨도 안 멈춘다.
+     받은 곡은 저장해 두니 다음부터는 처음부터 바로 */
   full: store.get('fullDl', true),
   setFull(v) { this.full = v; store.set('fullDl', v); },
   loading: null, // { it, p, ctl }
   async playFull(it, url) {
     this.loading?.ctl.abort();
     this.loading = null;
-    this.stopOthers('video');
-    this.setPlaying(false);
     const saved = await SongStore.get(it.id);
     if (this.current() !== it) return;
     if (saved) { this.keep(it.id, saved); this.paintSource(); return this.playVideo(saved); }
-    if (!this.full) return this.playVideo(url);
+    this.playVideo(url);
+    if (!this.full) return;
     const ctl = new AbortController();
     const job = (this.loading = { it, p: 0, ctl });
-    this.tick();
     try {
-      const blob = await downloadFile(url, p => { job.p = p; }, ctl.signal);
-      if (this.current() !== it) { SongStore.put(it.id, blob); return; }
+      const blob = await downloadFile(url, p => { job.p = p; this.paintSource(); }, ctl.signal);
+      SongStore.put(it.id, blob);
+      if (this.current() !== it || this.kind !== 'video') return;
       this.loading = null;
       const u = URL.createObjectURL(blob);
       this.keep(it.id, u);
-      SongStore.put(it.id, blob);
+      this.swapTo(u);
       this.paintSource();
       this.paintQueue();
-      this.playVideo(u);
     } catch (e) {
-      if (ctl.signal.aborted || this.current() !== it) return;
-      this.loading = null;
-      if (e.message === 'big') return this.playVideo(url); // 아주 큰 영상은 실시간으로
-      this.failover(tRaw('player.driveError'));
+      if (this.loading === job) this.loading = null;
+      this.paintSource();
     }
+  },
+  // 듣던 자리 그대로 받은 파일로 갈아탄다
+  swapTo(u) {
+    const v = this.video, at = v.currentTime || this.lastPos || 0, wasPlaying = !v.paused || this.playing;
+    v.addEventListener('loadedmetadata', () => { v.currentTime = at; if (wasPlaying) v.play().catch(() => {}); }, { once: true });
+    v.src = u;
   },
 
   // 지금 소스가 안 되면 다른 소스로, 그것도 안 되면 다음 곡으로
@@ -346,7 +350,7 @@ const Player = {
   },
   // 지금 곡이 다 받아졌으면(유튜브는 몇 초 지나면) 다음 곡을 받기 시작한다
   maybePrefetch() {
-    if (!this.playing || this.loading || (this.preJob && !this.preJob.failed && !this.preJob.done)) return;
+    if (!this.playing || this.loading || (this.preJob && !this.preJob.failed && !this.preJob.done)) return; // 지금 곡을 다 받은 뒤에 다음 곡
     if (this.kind === 'video') {
       const v = this.video, d = v.duration;
       const local = (v.getAttribute('src') || '').startsWith('blob:');
@@ -487,7 +491,6 @@ const Player = {
 
   tick() {
     if (this.bar.hidden) return;
-    if (this.loading) { $('#pTime').textContent = tRaw('player.loading', { p: Math.round(this.loading.p * 100) }); $('#pSeek').value = 0; return; }
     const d = this.duration(), p = this.position();
     const f = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
     $('#pTime').textContent = d ? `${f(p)} / ${f(d)}` : '';
@@ -515,7 +518,8 @@ const Player = {
   paintSource() {
     const el = $('#pSrc');
     const local = this.current() && (this.pre.has(this.current().id) || SongStore.has(this.current().id)) && this.source !== 'youtube';
-    if (el) el.textContent = this.source === 'youtube' ? 'YouTube' : local ? 'Drive ✓' : 'Drive';
+    const pct = this.loading && this.loading.it === this.current() ? ` · ${tRaw('player.loading', { p: Math.round(this.loading.p * 100) })}` : '';
+    if (el) el.textContent = this.source === 'youtube' ? 'YouTube' : local ? 'Drive ✓' : 'Drive' + pct;
     if (el) el.title = local ? tRaw('player.local') : '';
   },
   paintFav() {
