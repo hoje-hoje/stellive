@@ -9,6 +9,9 @@ const CLIENT_ID = '305499200154-8mh7k0jr3fhlf773nsml7gu8q9c7i9so.apps.googleuser
 /* ② 관리자 구글 계정 — 여기 있는 사람만 관리자 페이지에서 저장·삭제할 수 있다 */
 const ADMIN_EMAILS = [
   '33_37@kbs.hs.kr',
+  '33_11@kbs.hs.kr',
+  '33_43@kbs.hs.kr',
+  '33_26@kbs.hs.kr',
   // 'friend@gmail.com',   ← 관리자를 늘리려면 이렇게 한 줄씩
 ];
 
