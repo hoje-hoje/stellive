@@ -254,7 +254,15 @@ function renderMember(id, tab) {
   const mi = Data.site.members.indexOf(m), mp = `members.${mi}`;
   const family = ((m.enFull || m.en || m.name).split(' ')[0] || '').toUpperCase();
   const bd = m.birthday ? m.birthday.slice(-5).split('-').map(Number) : null;
-  const fanarts = Data.forMember(id, 'fanart').slice(0, 4);
+  // 팬아트가 4개보다 많으면 들어올 때마다 랜덤으로 4개 (같은 페이지 안에서 탭을 바꿀 때는 그대로)
+  const allArt = Data.forMember(id, 'fanart');
+  const keep = fanPick[id]?.filter(x => allArt.some(a => a.id === x));
+  if (pageFresh || !keep || keep.length < Math.min(4, allArt.length)) {
+    const ids = allArt.map(a => a.id);
+    for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+    fanPick[id] = ids.slice(0, 4);
+  }
+  const fanarts = fanPick[id].map(x => allArt.find(a => a.id === x));
   const sameGen = order.filter(x => x.group === m.group && !!x.graduated === !!m.graduated);
 
   view.innerHTML = `
@@ -456,17 +464,30 @@ function renderPlay() {
 // 이미 받아 둔 작은 썸네일 한 장만 쓰니 느려지지 않는다. 곡이 바뀌면 두 겹을 엇갈려 스르륵 바꾼다
 const Glow = {
   url: '',
-  set(url) {
+  // url 이 없으면(썸네일 없는 곡) 부른 멤버 색으로 번지게 한다
+  set(url, color) {
     const box = $('#npGlow');
+    if (!url && color) url = 'color:' + color;
     box.classList.toggle('on', !!url);
     if (!url || url === this.url) return;
     this.url = url;
     const [a, b] = $$('i', box);
-    const next = a.classList.contains('show') ? b : a, prev = next === a ? b : a;
+    const next0 = a.classList.contains('show') ? b : a;
+    if (url.startsWith('color:')) {
+      const c = url.slice(6);
+      next0.style.backgroundImage = `radial-gradient(70% 70% at 30% 35%, ${c}, transparent 72%), radial-gradient(60% 60% at 82% 72%, ${c}, transparent 72%)`;
+      next0.classList.add('show', 'col');
+      (next0 === a ? b : a).classList.remove('show');
+      return;
+    }
+    const next = next0, prev = next === a ? b : a;
     const img = new Image();
-    img.onload = img.onerror = () => {
+    // 썸네일이 안 열리면(드라이브가 아직 못 만든 경우 등) 멤버 색으로
+    img.onerror = () => { if (this.url === url) { this.url = ''; this.set('', color); } };
+    img.onload = () => {
       if (this.url !== url) return;
       next.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`;
+      next.classList.remove('col');
       next.classList.add('show');
       prev.classList.remove('show');
     };
@@ -685,12 +706,15 @@ const Intro = {
 
 /* ─── 주소 바뀔 때 ─── */
 let lastPage = '';
+let pageFresh = true; // 다른 페이지에서 막 들어왔는지
+const fanPick = {};
 function route(keepScroll) {
   if (!Data.site) return;
   const [, page, a, b] = location.hash.split('/');
   // 커버곡·오리곡 같은 탭만 바뀐 거면 맨 위로 올리지 않는다
   const pageKey = `${page || ''}/${page === 'm' ? a : ''}`;
   if (pageKey === lastPage) keepScroll = true;
+  pageFresh = pageKey !== lastPage;
   lastPage = pageKey;
   view.classList.toggle('about-v', page === 'about');
   view.classList.toggle('play-v', page === 'play');
@@ -706,7 +730,7 @@ function route(keepScroll) {
   else renderNotFound();
   ensureFoot();
   if (page === 'play' && $('#npSlot')) Player.enterPage($('#npSlot'));
-  if (page === 'play') Glow.set(Player.current()?.thumb || '');
+  if (page === 'play') { const it = Player.current(); Glow.set(it?.thumb || '', it && (Data.member(it.members[0])?.color || Data.group(it.group)?.color || 'var(--accent)')); }
   markNav();
   applyPositions(view);
   Menu.closeDrawer();
