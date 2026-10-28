@@ -1,6 +1,73 @@
 /* 아래에 붙어있는 노래 플레이어.
    유튜브는 IFrame API, 드라이브 mp4 는 <video> 로 틀어서 끝나면 다음 곡으로 넘어간다. */
 
+/* ─── 받아 둔 노래 ───
+   드라이브 곡은 조금씩 끊어 받으면 약한 와이파이에서 중간에 멈춘다.
+   그래서 한 번에 끝까지 받아서 틀고, 받은 곡은 브라우저 저장소에 넣어 둔다(다음엔 바로 · 인터넷 없이도).
+   오래 안 들은 곡부터 지워서 LIMIT 를 넘지 않게 한다 */
+const SongStore = {
+  name: 'stl-songs-v1',
+  LIMIT: 1.5e9,
+  index: store.get('songIdx', {}),
+  ok: typeof caches !== 'undefined',
+  has(id) { return !!this.index[id]; },
+  count() { return Object.keys(this.index).length; },
+  bytes() { return Object.values(this.index).reduce((a, x) => a + (x.size || 0), 0); },
+  save() { store.set('songIdx', this.index); },
+  async get(id) {
+    if (!this.ok || !this.index[id]) return null;
+    try {
+      const r = await (await caches.open(this.name)).match('/song/' + id);
+      if (!r) { delete this.index[id]; this.save(); return null; }
+      this.index[id].at = Date.now();
+      this.save();
+      return URL.createObjectURL(await r.blob());
+    } catch { return null; }
+  },
+  async put(id, blob) {
+    if (!this.ok) return;
+    try {
+      const c = await caches.open(this.name);
+      await c.put('/song/' + id, new Response(blob, { headers: { 'content-type': blob.type || 'video/mp4' } }));
+      this.index[id] = { size: blob.size, at: Date.now() };
+      const keep = new Set([Player.current()?.id, id]);
+      const old = Object.entries(this.index).sort((a, b) => a[1].at - b[1].at);
+      let total = this.bytes();
+      for (const [k, v] of old) {
+        if (total <= this.LIMIT) break;
+        if (keep.has(k)) continue;
+        await c.delete('/song/' + k);
+        delete this.index[k];
+        total -= v.size || 0;
+      }
+      this.save();
+    } catch {}
+  },
+  async clear() {
+    if (this.ok) await caches.delete(this.name).catch(() => {});
+    this.index = {};
+    this.save();
+  },
+};
+// 파일 하나를 끝까지 받는다. onProgress(0~1). 너무 크면(max) 'big' 으로 멈춘다
+async function downloadFile(url, onProgress, signal, max = 400e6) {
+  const r = await fetch(url, { signal });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const total = +r.headers.get('content-length') || 0;
+  if (total > max) { r.body?.cancel(); throw new Error('big'); }
+  if (!r.body || !total) return r.blob();
+  const reader = r.body.getReader(), parts = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    got += value.length;
+    onProgress?.(got / total);
+  }
+  return new Blob(parts, { type: r.headers.get('content-type') || 'video/mp4' });
+}
+
 const Player = {
   queue: [], idx: -1, label: '', shuffle: false, repeat: 'all',
   kind: '', // 'yt' | 'video' | 'frame'
@@ -118,6 +185,8 @@ const Player = {
 
   /* 노래를 끄고 아래 바 · 영상 창을 내린다 */
   close() {
+    this.loading?.ctl.abort();
+    this.loading = null;
     if (location.hash.startsWith('#/play')) location.hash = '#/listen';
     this.leavePage();
     this.stopOthers('');
@@ -152,10 +221,14 @@ const Player = {
     this.paintNow(it);
     this.paintQueue();
     this.changes.forEach(fn => fn(it));
-    this.playSource(it, this.prefer === 'drive' && it.hasDrive ? 'drive' : it.ytId ? 'youtube' : 'drive');
+    // 이미 받아 둔 곡은 유튜브보다 먼저 (인터넷이 필요 없다)
+    const local = it.hasDrive && (SongStore.has(it.id) || this.pre.has(it.id));
+    this.playSource(it, (this.prefer === 'drive' || local) && it.hasDrive ? 'drive' : it.ytId ? 'youtube' : 'drive');
   },
 
   playSource(it, src) {
+    this.loading?.ctl.abort();
+    this.loading = null;
     this.tried.add(src);
     this.paintCover(it, src);
     this.source = src;
@@ -163,9 +236,44 @@ const Player = {
     $$('[data-np-src]').forEach(el => (el.textContent = src === 'youtube' ? 'YouTube' : 'Drive'));
     if (src === 'youtube') return this.playYT(it);
     if (this.pre.has(it.id)) return this.playVideo(this.pre.get(it.id)); // 미리 받아 둔 곡
-    if (it.directUrl) return this.playVideo(it.directUrl);
-    if (it.driveId && CFG.driveApiKey) return this.playVideo(`https://www.googleapis.com/drive/v3/files/${it.driveId}?alt=media&key=${CFG.driveApiKey}`);
+    const url = this.fileUrl(it);
+    if (url) return this.playFull(it, url);
     if (it.driveId) return this.showFrame(it);
+  },
+
+  /* 끊김 없이: 저장소에 있으면 바로, 없으면 끝까지 받은 뒤 튼다 (받는 동안 진행률 표시).
+     "받으면서 바로 틀기"로 바꿔 두면 예전처럼 실시간으로 튼다 */
+  full: store.get('fullDl', true),
+  setFull(v) { this.full = v; store.set('fullDl', v); },
+  loading: null, // { it, p, ctl }
+  async playFull(it, url) {
+    this.loading?.ctl.abort();
+    this.loading = null;
+    this.stopOthers('video');
+    this.setPlaying(false);
+    const saved = await SongStore.get(it.id);
+    if (this.current() !== it) return;
+    if (saved) { this.keep(it.id, saved); this.paintSource(); return this.playVideo(saved); }
+    if (!this.full) return this.playVideo(url);
+    const ctl = new AbortController();
+    const job = (this.loading = { it, p: 0, ctl });
+    this.tick();
+    try {
+      const blob = await downloadFile(url, p => { job.p = p; }, ctl.signal);
+      if (this.current() !== it) { SongStore.put(it.id, blob); return; }
+      this.loading = null;
+      const u = URL.createObjectURL(blob);
+      this.keep(it.id, u);
+      SongStore.put(it.id, blob);
+      this.paintSource();
+      this.paintQueue();
+      this.playVideo(u);
+    } catch (e) {
+      if (ctl.signal.aborted || this.current() !== it) return;
+      this.loading = null;
+      if (e.message === 'big') return this.playVideo(url); // 아주 큰 영상은 실시간으로
+      this.failover(tRaw('player.driveError'));
+    }
   },
 
   // 지금 소스가 안 되면 다른 소스로, 그것도 안 되면 다음 곡으로
@@ -218,7 +326,7 @@ const Player = {
   prefetchNext() {
     const n = this.peekNext();
     const it = n >= 0 ? this.queue[n] : null;
-    if (!it || it === this.current() || this.pre.has(it.id) || this.preJob?.id === it.id) return;
+    if (!it || it === this.current() || this.pre.has(it.id) || SongStore.has(it.id) || this.preJob?.id === it.id) return;
     if (!it.hasDrive && !it.directUrl) return;
     if (it.ytId && this.prefer !== 'drive') return;
     const url = this.fileUrl(it);
@@ -226,13 +334,8 @@ const Player = {
     this.preJob?.ctl.abort();
     const ctl = new AbortController();
     const job = (this.preJob = { id: it.id, ctl });
-    fetch(url, { signal: ctl.signal })
-      .then(r => {
-        if (!r.ok) throw new Error(r.status);
-        if (+r.headers.get('content-length') > 300e6) { ctl.abort(); throw new Error('big'); } // 너무 큰 영상은 그냥 실시간으로
-        return r.blob();
-      })
-      .then(blob => { this.keep(it.id, URL.createObjectURL(blob)); this.paintQueue(); })
+    downloadFile(url, null, ctl.signal)
+      .then(blob => { SongStore.put(it.id, blob); this.keep(it.id, URL.createObjectURL(blob)); job.done = true; this.paintQueue(); })
       .catch(() => { job.failed = true; });
   },
   // 지금 곡과 다음 곡 것만 남기고 나머지는 메모리에서 비운다
@@ -243,7 +346,7 @@ const Player = {
   },
   // 지금 곡이 다 받아졌으면(유튜브는 몇 초 지나면) 다음 곡을 받기 시작한다
   maybePrefetch() {
-    if (!this.playing || (this.preJob && !this.preJob.failed && !this.pre.has(this.preJob.id))) return;
+    if (!this.playing || this.loading || (this.preJob && !this.preJob.failed && !this.preJob.done)) return;
     if (this.kind === 'video') {
       const v = this.video, d = v.duration;
       const local = (v.getAttribute('src') || '').startsWith('blob:');
@@ -384,6 +487,7 @@ const Player = {
 
   tick() {
     if (this.bar.hidden) return;
+    if (this.loading) { $('#pTime').textContent = tRaw('player.loading', { p: Math.round(this.loading.p * 100) }); $('#pSeek').value = 0; return; }
     const d = this.duration(), p = this.position();
     const f = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
     $('#pTime').textContent = d ? `${f(p)} / ${f(d)}` : '';
@@ -410,7 +514,7 @@ const Player = {
   },
   paintSource() {
     const el = $('#pSrc');
-    const local = this.current() && this.pre.has(this.current().id) && this.source !== 'youtube';
+    const local = this.current() && (this.pre.has(this.current().id) || SongStore.has(this.current().id)) && this.source !== 'youtube';
     if (el) el.textContent = this.source === 'youtube' ? 'YouTube' : local ? 'Drive ✓' : 'Drive';
     if (el) el.title = local ? tRaw('player.local') : '';
   },
@@ -434,7 +538,7 @@ const Player = {
       <li data-qi="${i}" class="${i === this.idx ? 'now' : ''}">
         <span class="q-n">${i === this.idx ? ICON.play : i + 1}</span>
         <span class="q-t">${esc(it.title)}</span>
-        <span class="q-m">${esc(it.members.map(id => Data.member(id)?.name).filter(Boolean).join(' · '))}${this.pre.has(it.id) ? ` · ✓ ${esc(tRaw('player.ready'))}` : ''}</span>
+        <span class="q-m">${esc(it.members.map(id => Data.member(id)?.name).filter(Boolean).join(' · '))}${this.pre.has(it.id) || SongStore.has(it.id) ? ` · ✓ ${esc(tRaw('player.ready'))}` : ''}</span>
       </li>`).join('');
   },
 };

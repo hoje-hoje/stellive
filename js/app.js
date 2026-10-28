@@ -633,6 +633,7 @@ function renderListen() {
       <span class="grow"></span>
       <span class="chip-k">${esc(t('listen.preferNote'))}</span>
       <button type="button" class="chip ${Player.prefer === 'drive' ? 'on' : ''}" data-prefer aria-pressed="${Player.prefer === 'drive'}">${esc(t('listen.prefer'))}</button>
+      <button type="button" class="chip ${Player.full ? 'on' : ''}" data-fulldl aria-pressed="${Player.full}" title="${esc(tRaw('listen.fullTitle'))}">${esc(t('listen.full'))}</button>
       <span class="chip-k">${esc(t('listen.coverNote'))}</span>
       ${['fanart', 'profile'].map(v => `<button type="button" class="chip ${store.get('audioCover', 'fanart') === v ? 'on' : ''}" data-cover="${v}" aria-pressed="${store.get('audioCover', 'fanart') === v}">${esc(t(v === 'fanart' ? 'listen.coverFanart' : 'listen.coverProfile'))}</button>`).join('')}
     </div>
@@ -656,6 +657,7 @@ function renderListen() {
     </section>
     <section>
       <input class="search" id="songSearch" placeholder="${esc(t('listen.search'))}" value="${esc(state.search)}" aria-label="${esc(t('listen.search'))}">
+      ${SongStore.count() ? `<p class="saved-note">${esc(t('listen.saved', { n: SongStore.count(), mb: Math.round(SongStore.bytes() / 1e6) }))} <button type="button" class="chip-btn" data-clearsongs>${esc(t('listen.clear'))}</button></p>` : ''}
       ${shown.length ? songList(shown, t('listen.ko')) : emptyBox(esc(t('list.empty', { kind: t('stars.music') })), 'cover', [])}
     </section>`;
   const inp = $('#songSearch');
@@ -1086,6 +1088,8 @@ document.addEventListener('click', e => {
     Player.refreshCover();
     renderListen(); ensureFoot(); return;
   }
+  if (tg.closest('[data-fulldl]')) { Player.setFull(!Player.full); renderListen(); ensureFoot(); return; }
+  if (tg.closest('[data-clearsongs]')) { if (confirm(tRaw('listen.clearConfirm'))) SongStore.clear().then(() => { renderListen(); ensureFoot(); }); return; }
   if (tg.closest('[data-prefer]')) { Player.setPrefer(Player.prefer === 'drive' ? 'youtube' : 'drive'); renderListen(); ensureFoot(); return; }
   if ((el = tg.closest('[data-npq]'))) { Player.go(+el.dataset.npq); return; }
   if (tg.closest('[data-np-back]')) { e.preventDefault(); Player.togglePage(); return; }

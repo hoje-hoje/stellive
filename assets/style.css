@@ -1007,3 +1007,5 @@ body.cm-open .sh-nav { display: none; }
 .art.img-broken::before { content: '✦'; font-size: 30px; }
 
 .sh-sep { flex: none; width: 1px; align-self: stretch; margin: 4px 4px; background: var(--line2); }
+
+.saved-note { display: flex; align-items: center; gap: 10px; margin: 12px 0 0; font-size: 12px; color: var(--dim); }
