@@ -8,7 +8,7 @@
    #/about         소개 · 2차 창작 가이드라인 */
 
 const view = $('#view');
-const state = { calMonth: null, calPick: null, listenKinds: new Set(['cover', 'original', 'album']), search: '', guideOpen: 1, shortsWho: '' };
+const state = { calMonth: null, calPick: null, listenKinds: new Set(['cover', 'original', 'album']), search: '', guideOpen: 1, feedWho: { shorts: '', clips: '' } };
 
 // 프로필 탭 순서는 홈/단체와 다르다 (팬아트·짤을 앞으로)
 const PROFILE_TABS = ['cover', 'fanart', 'meme', 'clip', 'shorts', 'original', 'album'];
@@ -66,10 +66,10 @@ function songList(items, label) {
     </li>`).join('')}</ol>`;
 }
 
-function clipGrid(items) {
+function clipGrid(items, who = '') {
   if (!items.length) return '';
   return `<div class="clips">${items.map(it => `
-    <article class="clip" data-view-item="${esc(it.id)}">
+    <article class="clip" ${feedPlayable(it) ? `data-feedwho="clips:${esc(who)}" data-go="#/clips/${esc(it.id)}"` : `data-view-item="${esc(it.id)}"`}>
       <div class="c-th">${it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy" decoding="async">` : it.link?.type === 'chzzk' ? ICON.chzzk : it.link?.type === 'x' ? ICON.x : ICON.video}</div>
       <div class="c-meta"><b>${esc(it.title || t('list.clipTitle'))}</b><small>${esc(memberNames(it).join(' · '))}${it.by ? ` · ${esc(it.by)}` : ''}</small></div>
       <div class="c-x">${starBtn(it)}${ownBtns(it)}</div>
@@ -95,47 +95,58 @@ function itemsBlock(kind, items, label, ctx = {}) {
     </div>` + songList(items, label);
   if (KIND[kind]?.image) return imageGrid(items);
   if (kind === 'shorts') return shortsGrid(items, ctx.members?.length === 1 ? ctx.members[0] : '');
-  return clipGrid(items);
+  return clipGrid(items, ctx.members?.length === 1 ? ctx.members[0] : '');
 }
 
-/* ─── 쇼츠 ───
-   세로 영상이 한 화면에 하나씩. 스크롤 · 스와이프 · ↑↓ 로 넘기고, 화면에 들어온 것만 튼다 */
+/* ─── 쇼츠 · 클립 피드 ───
+   영상이 한 화면에 하나씩. 스크롤 · 스와이프 · ↑↓ 로 넘기고, 화면에 들어온 것만 튼다.
+   쇼츠는 세로(9:16), 클립(2~3분짜리)은 가로(16:9) */
+const FEEDS = {
+  shorts: { kind: 'shorts', big: 'shorts.big', vertical: true },
+  clips: { kind: 'clip', big: 'clips.big', vertical: false },
+};
 const ytVert = id => `https://i.ytimg.com/vi/${id}/oardefault.jpg`;
 const ytWide = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-function shortThumb(it) {
-  return it.ytId
+const feedPlayable = it => !!(it.ytId || it.media || it.link?.type === 'chzzk');
+function shortThumb(it, vertical = true) {
+  if (it.ytId) return vertical
     ? `<img src="${ytVert(it.ytId)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${ytWide(it.ytId)}'">`
-    : it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy">` : '';
+    : `<img src="${ytWide(it.ytId)}" alt="" loading="lazy">`;
+  if (it.thumb) return `<img src="${esc(it.thumb)}" alt="" loading="lazy">`;
+  return `<span class="sh-ph">${it.link?.type === 'chzzk' ? ICON.chzzk : ICON.video}</span>`;
 }
 // 멤버 페이지 쇼츠 탭: 세로 썸네일 칸. 누르면 쇼츠 화면에서 그 영상부터
 function shortsGrid(items, who) {
-  return `<div class="sh-grid">${items.map(it => `<a class="sh-tile" href="#/shorts/${esc(it.id)}" data-shwho="${esc(who)}">
+  return `<div class="sh-grid">${items.map(it => `<a class="sh-tile" href="#/shorts/${esc(it.id)}" data-feedwho="shorts:${esc(who)}">
     ${shortThumb(it)}<span class="sh-tt">${esc(it.title || '')}</span></a>`).join('')}</div>`;
 }
-function shortsList() {
-  return Data.items.filter(i => i.kind === 'shorts' && (i.ytId || i.media) && (!state.shortsWho || i.members.includes(state.shortsWho)))
+function feedList(f) {
+  const who = state.feedWho[f];
+  return Data.items.filter(i => i.kind === FEEDS[f].kind && feedPlayable(i) && (!who || i.members.includes(who)))
     .sort((a, b) => (b.at > a.at ? 1 : -1));
 }
-function renderShorts(startId) {
-  const all = Data.items.filter(i => i.kind === 'shorts');
+function renderFeed(f, startId) {
+  const F = FEEDS[f];
+  const all = Data.items.filter(i => i.kind === F.kind && feedPlayable(i));
   const who = Data.site.members.filter(m => all.some(i => i.members.includes(m.id)));
-  if (state.shortsWho && !who.some(m => m.id === state.shortsWho)) state.shortsWho = '';
-  const list = shortsList();
+  if (state.feedWho[f] && !who.some(m => m.id === state.feedWho[f])) state.feedWho[f] = '';
+  const cur = state.feedWho[f];
+  const list = feedList(f);
   view.innerHTML = `
     <header class="sh-top">
-      <span class="big">${esc(t('shorts.big'))}</span>
+      <span class="big">${esc(t(F.big))}</span>
       <div class="sh-chips">
-        <button type="button" class="chip ${state.shortsWho ? '' : 'on'}" data-shfilter="">${esc(t('shorts.all'))} <small>${all.length}</small></button>
-        ${who.map(m => `<button type="button" class="chip ${state.shortsWho === m.id ? 'on' : ''}" data-shfilter="${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}${esc(m.name)}</button>`).join('')}
+        <button type="button" class="chip ${cur ? '' : 'on'}" data-feedfilter="${f}:">${esc(t('shorts.all'))} <small>${all.length}</small></button>
+        ${who.map(m => `<button type="button" class="chip ${cur === m.id ? 'on' : ''}" data-feedfilter="${f}:${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}${esc(m.name)}</button>`).join('')}
       </div>
-      <button type="button" class="btn sm solid" data-upload='${esc(JSON.stringify({ kind: 'shorts', members: state.shortsWho ? [state.shortsWho] : [] }))}'>${ICON.plus} ${esc(t('shorts.upload'))}</button>
+      <button type="button" class="btn sm solid" data-upload='${esc(JSON.stringify({ kind: F.kind, members: cur ? [cur] : [] }))}'>${esc(t('list.add', { kind: KIND[F.kind].name }))}</button>
     </header>
-    ${list.length ? `<div class="sh-feed" id="shFeed">${list.map(it => {
+    ${list.length ? `<div class="sh-feed ${F.vertical ? '' : 'wide'}" id="shFeed" data-feed="${f}">${list.map(it => {
       const ms = it.members.map(id => Data.member(id)).filter(Boolean);
       const fav = Favs.has(it.id);
       return `<section class="sh-item" data-sh="${esc(it.id)}">
         <div class="sh-card" style="--c:${esc(ms[0]?.color || 'var(--accent)')}">
-          <div class="sh-media">${shortThumb(it)}<div class="sh-play" aria-hidden="true">${ICON.play}</div></div>
+          <div class="sh-media">${shortThumb(it, F.vertical)}<div class="sh-play" aria-hidden="true">${ICON.play}</div></div>
           <div class="sh-info">
             <div class="sh-who">${ms.map(m => `<a href="#/m/${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}<b>${esc(m.name)}</b></a>`).join('')}</div>
             <p>${esc(it.title || '')}</p>
@@ -144,27 +155,38 @@ function renderShorts(startId) {
         </div>
         <div class="sh-acts">
           <button type="button" class="star ${fav ? 'on' : ''}" data-fav="${esc(it.id)}" aria-pressed="${fav}" aria-label="${esc(t('list.star'))}">${fav ? ICON.star : ICON.starO}</button>
+          <button type="button" class="icon-btn sh-cm" data-cm="${esc(it.id)}" aria-label="${esc(t('cm.title'))}" title="${esc(t('cm.title'))}">${ICON.comment}<small data-cmcount="${esc(it.id)}">${Comments.counts[it.id] || ''}</small></button>
           <a class="icon-btn" href="${esc(it.open || it.url)}" target="_blank" rel="noopener" aria-label="${esc(t('list.open'))}" title="${esc(t('list.open'))}">${ICON.ext}</a>
-          <button type="button" class="icon-btn" data-shcopy="${esc(it.id)}" aria-label="${esc(t('shorts.copy'))}" title="${esc(t('shorts.copy'))}">${ICON.copy || '⧉'}</button>
+          <button type="button" class="icon-btn" data-shcopy="${f}/${esc(it.id)}" aria-label="${esc(t('shorts.copy'))}" title="${esc(t('shorts.copy'))}">${ICON.copy}</button>
           ${ownBtns(it).replace(/icon-btn sm/g, 'icon-btn')}
         </div>
       </section>`;
     }).join('')}</div>
     <div class="sh-nav"><button type="button" class="icon-btn" data-shnav="-1" aria-label="이전">${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 15l7-7 7 7')}</button><button type="button" class="icon-btn" data-shnav="1" aria-label="다음">${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 9l7 7 7-7')}</button></div>`
-    : emptyBox(esc(t('shorts.empty')), 'shorts', state.shortsWho ? [state.shortsWho] : [])}`;
-  Shorts.start(startId);
+    : emptyBox(esc(t(f === 'shorts' ? 'shorts.empty' : 'clips.empty')), F.kind, cur ? [cur] : [])}`;
+  Feed.start(f, startId);
+  Comments.loadCounts();
 }
-const Shorts = {
-  io: null, cur: null,
-  start(startId) {
+const Feed = {
+  io: null, cur: null, f: '',
+  start(f, startId) {
     this.io?.disconnect();
     this.cur = null;
+    this.f = f;
     const feed = $('#shFeed');
     if (!feed) return;
     const first = startId && feed.querySelector(`[data-sh="${CSS.escape(startId)}"]`);
     if (first) feed.scrollTop = first.offsetTop - feed.offsetTop;
     this.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) this.show(e.target); }), { root: feed, threshold: 0.6 });
     $$('.sh-item', feed).forEach(el => this.io.observe(el));
+  },
+  live(it) {
+    const loop = this.f === 'shorts';
+    if (it.hasDrive && (!it.ytId || Player.prefer === 'drive')) return `<video class="sh-live" src="${esc(Player.fileUrl(it))}" autoplay ${loop ? 'loop' : ''} playsinline controls></video>`;
+    if (it.ytId) return `<iframe class="sh-live" src="https://www.youtube.com/embed/${esc(it.ytId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1${loop ? `&loop=1&playlist=${esc(it.ytId)}` : ''}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="${esc(it.title || '')}"></iframe>`;
+    if (it.link?.type === 'chzzk') return `<iframe class="sh-live" src="https://chzzk.naver.com/embed/clip/${esc(it.link.id)}" allow="autoplay; fullscreen" allowfullscreen title="${esc(it.title || '')}"></iframe>`;
+    if (it.directUrl) return `<video class="sh-live" src="${esc(it.directUrl)}" autoplay ${loop ? 'loop' : ''} playsinline controls></video>`;
+    return '';
   },
   show(sec) {
     if (this.cur === sec) return;
@@ -173,12 +195,9 @@ const Shorts = {
     const it = Data.item(sec.dataset.sh);
     if (!it) return;
     if (Player.playing) Player.toggle(false); // 노래는 잠깐 멈춘다
-    const drive = it.hasDrive && (!it.ytId || Player.prefer === 'drive');
-    const box = $('.sh-media', sec);
-    box.insertAdjacentHTML('beforeend', drive
-      ? `<video class="sh-live" src="${esc(Player.fileUrl(it))}" autoplay loop playsinline controls></video>`
-      : `<iframe class="sh-live" src="https://www.youtube.com/embed/${esc(it.ytId)}?autoplay=1&playsinline=1&loop=1&playlist=${esc(it.ytId)}&rel=0&modestbranding=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="${esc(it.title || '쇼츠')}"></iframe>`);
-    history.replaceState(null, '', '#/shorts/' + it.id);
+    $('.sh-media', sec).insertAdjacentHTML('beforeend', this.live(it));
+    history.replaceState(null, '', `#/${this.f}/${it.id}`);
+    if (Comments.openId) Comments.open(it.id); // 댓글 창이 열려 있으면 지금 영상 것으로
   },
   unmount(sec) { $$('.sh-live', sec).forEach(el => el.remove()); },
   step(d) {
@@ -187,6 +206,118 @@ const Shorts = {
   },
   stop() { this.io?.disconnect(); this.io = null; this.cur = null; },
 };
+
+/* ─── 댓글 ───
+   구글 로그인한 사람만 쓴다. 자기 댓글(과 관리자)은 지울 수 있다. 서버가 없으면 이 브라우저에만 저장(미리보기) */
+const Comments = {
+  counts: {}, openId: '', list: [], busy: false,
+  async loadCounts() {
+    try {
+      if (LIVE) {
+        const r = await fetch(CFG.scriptUrl + '?action=commentCounts').then(r => r.json());
+        if (r.ok) this.counts = r.counts || {};
+      } else {
+        this.counts = {};
+        store.get('demoComments', []).forEach(c => (this.counts[c.item] = (this.counts[c.item] || 0) + 1));
+      }
+    } catch (e) {}
+    this.paintCounts();
+  },
+  paintCounts() { $$('[data-cmcount]').forEach(el => (el.textContent = this.counts[el.dataset.cmcount] || '')); },
+  async fetch(item) {
+    if (!LIVE) return store.get('demoComments', []).filter(c => c.item === item);
+    const r = await fetch(CFG.scriptUrl + '?action=comments&item=' + encodeURIComponent(item)).then(r => r.json());
+    if (!r.ok) throw new Error(r.error);
+    return r.comments || [];
+  },
+  async open(item) {
+    this.openId = item;
+    const box = $('#cmPanel');
+    box.hidden = false;
+    document.body.classList.add('cm-open');
+    this.list = null;
+    this.paint();
+    try { this.list = await this.fetch(item); } catch (e) { this.list = []; toast(e.message, true); }
+    if (this.openId === item) this.paint();
+  },
+  close() { this.openId = ''; $('#cmPanel').hidden = true; document.body.classList.remove('cm-open'); },
+  mine(c) {
+    if (!Auth.user) return false;
+    if (Auth.user.admin) return true;
+    return c.email ? c.email === Auth.user.email : c.hash && c.hash === this.myHash;
+  },
+  paint() {
+    const it = Data.item(this.openId);
+    const box = $('#cmPanel');
+    const L = this.list;
+    box.innerHTML = `
+      <div class="cm-h"><b>${esc(t('cm.title'))}</b><small>${L ? L.length : ''}</small><span class="grow"></span><button type="button" class="icon-btn" data-cmclose aria-label="닫기">${ICON.close}</button></div>
+      ${it ? `<p class="cm-of">${esc(it.title || '')}</p>` : ''}
+      <ol class="cm-list">${L == null ? `<li class="cm-empty">${esc(t('cm.loading'))}</li>` : L.length ? L.map(c => `
+        <li><span class="cm-av">${esc((c.name || '?').slice(0, 1))}</span>
+          <div><div class="cm-meta"><b>${esc(c.name || '')}</b><small>${esc(ago(c.at))}</small>${this.mine(c) ? `<button type="button" class="cm-del" data-cmdel="${esc(c.id)}">${esc(t('list.delete'))}</button>` : ''}</div>
+          <p>${esc(c.text)}</p></div></li>`).join('') : `<li class="cm-empty">${esc(t('cm.empty'))}</li>`}</ol>
+      ${Auth.user ? `<form class="cm-form" id="cmForm"><textarea id="cmText" maxlength="500" rows="2" placeholder="${esc(t('cm.placeholder'))}"></textarea><button type="submit" class="btn sm solid">${esc(t('cm.send'))}</button></form>`
+        : `<div class="cm-login"><p>${esc(t('cm.login'))}</p><div id="cmLogin"></div></div>`}`;
+    if (!Auth.user) Auth.renderButton($('#cmLogin'));
+    const list = $('.cm-list', box);
+    list.scrollTop = list.scrollHeight;
+  },
+  async send(text) {
+    text = text.trim();
+    if (!text || this.busy) return;
+    this.busy = true;
+    try {
+      let c;
+      if (LIVE) c = (await api('addComment', { item: this.openId, text })).comment;
+      else {
+        c = { id: 'c' + Date.now(), item: this.openId, name: Auth.user?.name || '나', email: Auth.user?.email || '', text, at: new Date().toISOString() };
+        store.set('demoComments', [...store.get('demoComments', []), c]);
+      }
+      this.list = [...(this.list || []), c];
+      this.counts[this.openId] = (this.counts[this.openId] || 0) + 1;
+      this.paint();
+      this.paintCounts();
+    } catch (e) { toast(e.message, true); } finally { this.busy = false; }
+  },
+  async remove(id) {
+    if (!confirm(tRaw('cm.confirmDelete'))) return;
+    try {
+      if (LIVE) await api('removeComment', { id });
+      else store.set('demoComments', store.get('demoComments', []).filter(c => c.id !== id));
+      this.list = this.list.filter(c => c.id !== id);
+      this.counts[this.openId] = Math.max(0, (this.counts[this.openId] || 1) - 1);
+      this.paint();
+      this.paintCounts();
+    } catch (e) { toast(e.message, true); }
+  },
+};
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'cmForm') return;
+  e.preventDefault();
+  Comments.send($('#cmText').value);
+});
+document.addEventListener('keydown', e => {
+  if (e.target.id === 'cmText' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); Comments.send(e.target.value); }
+});
+// 댓글 주인 확인용: 서버는 이메일 대신 해시만 보낸다
+Auth.on(async user => {
+  Comments.myHash = '';
+  if (user?.email && crypto.subtle) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(user.email.toLowerCase()));
+    Comments.myHash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  if (Comments.openId) Comments.paint();
+});
+function ago(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (!(s >= 0)) return '';
+  if (s < 60) return '방금';
+  if (s < 3600) return Math.floor(s / 60) + '분 전';
+  if (s < 86400) return Math.floor(s / 3600) + '시간 전';
+  if (s < 86400 * 30) return Math.floor(s / 86400) + '일 전';
+  return fmtDate(iso);
+}
 
 /* ─── 홈 ─── */
 function renderHome() {
@@ -252,7 +383,7 @@ function footerHtml() {
           <div><img src="${esc(siteImg('logo', 200))}" alt="" data-ei="images.logo" data-pos="logo.footer">${esc(t('brand.name'))} <i>${esc(t('brand.sub'))}</i></div>
           <p>${th('footer.note')}</p>
         </div>
-        <nav aria-label="${esc(t('footer.archive'))}"><span class="kk">${esc(t('footer.archive'))}</span><a href="#/listen">${esc(t('nav.listen'))}</a><a href="#/shorts">${esc(t('nav.shorts'))}</a><a href="#/group">${esc(t('nav.group'))}</a><a href="#/stars">${esc(t('nav.stars'))}</a></nav>
+        <nav aria-label="${esc(t('footer.archive'))}"><span class="kk">${esc(t('footer.archive'))}</span><a href="#/listen">${esc(t('nav.listen'))}</a><a href="#/shorts">${esc(t('nav.shorts'))}</a><a href="#/clips">${esc(t('nav.clips'))}</a><a href="#/group">${esc(t('nav.group'))}</a><a href="#/stars">${esc(t('nav.stars'))}</a></nav>
         <nav aria-label="${esc(t('footer.contribute'))}"><span class="kk">${esc(t('footer.contribute'))}</span><a href="#" data-upload="{}">${esc(t('upload.title'))}</a><a href="#/about">About · ${esc(t('nav.about'))}</a><a href="admin.html">${esc(t('footer.admin'))}</a><a href="privacy.html">${esc(t('footer.privacy'))}</a></nav>
         <nav aria-label="${esc(t('footer.official'))}"><span class="kk">${esc(t('footer.official'))}</span><a href="https://stellive.me" target="_blank" rel="noopener">${esc(t('footer.officialSite'))}</a></nav>
       </div>
@@ -713,7 +844,7 @@ function renderAbout() {
 
 /* ─── 목차 ─── */
 const NAV = [
-  ['#/', 'nav.home', 'nav.homeEn'], ['#/calendar', 'nav.calendar', 'nav.calendarEn'], ['#/listen', 'nav.listen', 'nav.listenEn'], ['#/shorts', 'nav.shorts', 'nav.shortsEn'],
+  ['#/', 'nav.home', 'nav.homeEn'], ['#/calendar', 'nav.calendar', 'nav.calendarEn'], ['#/listen', 'nav.listen', 'nav.listenEn'], ['#/shorts', 'nav.shorts', 'nav.shortsEn'], ['#/clips', 'nav.clips', 'nav.clipsEn'],
   ['#/group', 'nav.group', 'nav.groupEn'], ['#/stars', 'nav.stars', 'nav.starsEn'], ['#/about', 'nav.about', 'nav.aboutEn'],
 ];
 function renderDrawer() {
@@ -848,8 +979,8 @@ function route(keepScroll) {
   lastPage = pageKey;
   view.classList.toggle('about-v', page === 'about');
   view.classList.toggle('play-v', page === 'play');
-  view.classList.toggle('shorts-v', page === 'shorts');
-  if (page !== 'shorts') Shorts.stop();
+  view.classList.toggle('shorts-v', page === 'shorts' || page === 'clips');
+  if (page !== 'shorts' && page !== 'clips') { Feed.stop(); Comments.close(); }
   if (page !== 'play') { Player.leavePage(); Glow.set(''); }
   if (!page) renderHome();
   else if (page === 'm') renderMember(decodeURIComponent(a || ''), b);
@@ -859,7 +990,7 @@ function route(keepScroll) {
   else if (page === 'stars') renderStars();
   else if (page === 'about') renderAbout();
   else if (page === 'play') renderPlay();
-  else if (page === 'shorts') renderShorts(decodeURIComponent(a || ''));
+  else if (page === 'shorts' || page === 'clips') renderFeed(page, decodeURIComponent(a || ''));
   else renderNotFound();
   ensureFoot();
   if (page === 'play' && $('#npSlot')) Player.enterPage($('#npSlot'));
@@ -959,14 +1090,17 @@ document.addEventListener('click', e => {
     $('#cal').innerHTML = calendarHtml(location.hash.startsWith('#/calendar'));
     return;
   }
-  if ((el = tg.closest('[data-shfilter]'))) { state.shortsWho = el.dataset.shfilter; renderShorts(); ensureFoot(); return; }
-  if ((el = tg.closest('[data-shnav]'))) { Shorts.step(+el.dataset.shnav); return; }
-  if ((el = tg.closest('[data-shwho]'))) { state.shortsWho = el.dataset.shwho; return; } // 링크는 그대로 따라간다
+  if ((el = tg.closest('[data-feedfilter]'))) { const [f, w] = el.dataset.feedfilter.split(':'); state.feedWho[f] = w; renderFeed(f); ensureFoot(); return; }
+  if ((el = tg.closest('[data-shnav]'))) { Feed.step(+el.dataset.shnav); return; }
+  if ((el = tg.closest('[data-feedwho]'))) { const [f, w] = el.dataset.feedwho.split(':'); state.feedWho[f] = w; if (el.dataset.go) location.hash = el.dataset.go; return; } // 링크는 그대로 따라간다
   if ((el = tg.closest('[data-shcopy]'))) {
-    const url = location.origin + location.pathname + '#/shorts/' + el.dataset.shcopy;
+    const url = location.origin + location.pathname + '#/' + el.dataset.shcopy;
     navigator.clipboard?.writeText(url).then(() => toast(tRaw('shorts.copied')), () => prompt('', url));
     return;
   }
+  if ((el = tg.closest('[data-cm]'))) { Comments.openId === el.dataset.cm ? Comments.close() : Comments.open(el.dataset.cm); return; }
+  if (tg.closest('[data-cmclose]')) { Comments.close(); return; }
+  if ((el = tg.closest('[data-cmdel]'))) { Comments.remove(el.dataset.cmdel); return; }
   if (tg.closest('[data-close]') || tg.classList.contains('modal')) closeModals();
 });
 
@@ -974,7 +1108,7 @@ document.addEventListener('keydown', e => {
   if (document.activeElement?.isContentEditable) return;
   if (Intro.isOpen()) { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); Intro.hide(); } return; }
   if (e.key === 'Escape') { closeModals(); Menu.closeDrawer(); Menu.setTop(false); }
-  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && $('#shFeed') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); Shorts.step(e.key === 'ArrowDown' ? 1 : -1); }
+  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && $('#shFeed') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); Feed.step(e.key === 'ArrowDown' ? 1 : -1); }
   if (e.key === ' ' && !Player.bar.hidden && !/INPUT|TEXTAREA|SELECT|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); Player.toggle(); }
 });
 

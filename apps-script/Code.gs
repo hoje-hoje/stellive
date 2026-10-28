@@ -80,6 +80,8 @@ function doGet(e) {
     // 사이트 설정은 금방 오니 먼저 보내고, 드라이브 목록은 따로 받는다
     if (action === 'site') return out_({ ok: true, site: readSite_() });
     if (action === 'items') return out_({ ok: true, items: allItems_() });
+    if (action === 'comments') return out_({ ok: true, comments: commentsFor_(String(e.parameter.item || '')) });
+    if (action === 'commentCounts') return out_({ ok: true, counts: commentCounts_() });
     return out_({ ok: false, error: '모르는 요청' });
   } catch (err) { return out_({ ok: false, error: String(err) }); }
 }
@@ -172,6 +174,29 @@ const ACTIONS = {
       file.setDescription(JSON.stringify(meta));
     }
     editCache_(list => list.map(x => (x.id === b.id ? Object.assign(x, { title: title }) : x)));
+    return {};
+  },
+
+  // 댓글: 구글 로그인한 사람만. 500자까지
+  addComment(b, u) {
+    const text = String(b.text || '').trim().slice(0, 500);
+    const item = String(b.item || '').trim();
+    if (!text) throw new Error('댓글이 비어 있다');
+    if (!item) throw new Error('어디에 다는 댓글인지 모르겠다');
+    const row = ['c_' + Utilities.getUuid().slice(0, 12), item, u.email, u.name, text, new Date().toISOString()];
+    commentsSheet_().appendRow(row);
+    CacheService.getScriptCache().remove('ccounts');
+    return { comment: commentOut_(row) };
+  },
+  removeComment(b, u) {
+    const sh = commentsSheet_();
+    const rows = sh.getDataRange().getValues();
+    for (let i = rows.length - 1; i >= 1; i--) {
+      if (rows[i][0] !== b.id) continue;
+      if (!isAdmin_(u) && rows[i][2] !== u.email) throw new Error('자기가 쓴 댓글만 지울 수 있다');
+      sh.deleteRow(i + 1);
+    }
+    CacheService.getScriptCache().remove('ccounts');
     return {};
   },
 
@@ -569,4 +594,31 @@ function classifyOld_(name, folderText, baseKind, site, extra) {
   if (kind === 'cover' && !/cover|커버|mashup|매쉬업|메들리|medley/i.test(name)) kind = 'original';
   const title = name.replace(/\.[^.]+$/, '').replace(/_MP3( \(\d+\))?$/i, '').trim();
   return { kind: kind, members: members, group: group, title: title };
+}
+
+/* ─── 댓글 ─── 스프레드시트 comments 시트: id, item, email, name, text, at
+   이메일은 밖으로 내보내지 않고, 주인 확인용 해시만 보낸다 */
+function commentsSheet_() {
+  const ss = SpreadsheetApp.openById(props.getProperty('SHEET_ID'));
+  return ss.getSheetByName('comments') || (() => { const sh = ss.insertSheet('comments'); sh.appendRow(['id', 'item', 'email', 'name', 'text', 'at']); return sh; })();
+}
+function emailHash_(email) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(email || '').toLowerCase(), Utilities.Charset.UTF_8)
+    .map(b => ('0' + (b & 255).toString(16)).slice(-2)).join('');
+}
+function commentOut_(r) {
+  return { id: r[0], item: r[1], hash: emailHash_(r[2]), name: r[3], text: r[4], at: r[5] instanceof Date ? r[5].toISOString() : String(r[5] || '') };
+}
+function commentsFor_(item) {
+  if (!item) return [];
+  return commentsSheet_().getDataRange().getValues().slice(1).filter(r => r[1] === item).map(commentOut_);
+}
+function commentCounts_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('ccounts');
+  if (hit) return JSON.parse(hit);
+  const out = {};
+  commentsSheet_().getDataRange().getValues().slice(1).forEach(r => { if (r[1]) out[r[1]] = (out[r[1]] || 0) + 1; });
+  cache.put('ccounts', JSON.stringify(out), 600);
+  return out;
 }
