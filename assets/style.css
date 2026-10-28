@@ -381,7 +381,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .pf-links a.btn { font-weight: 400; }
 .pf-links .btn.solid { margin-left: auto; background: var(--c); border-color: var(--c); color: #121238; }
 .mini { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.mini button { aspect-ratio: 1; background: var(--tile) center / cover; display: grid; place-items: center; font-size: 11px; color: var(--dim); transition: opacity .2s; }
+.mini button { aspect-ratio: 3 / 4; background: var(--tile) center top / cover; display: grid; place-items: center; font-size: 11px; color: var(--dim); transition: opacity .2s; }
 .mini button:hover { opacity: .85; }
 .mini button svg { font-size: 22px; }
 
