@@ -31,7 +31,7 @@ const ALL_DIR     = '전체';
 const SYS_DIR     = '_사이트';
 const KINDS = { cover: '커버곡', original: '오리곡', album: '앨범', clip: '클립', fanart: '팬아트', meme: '짤' };
 const GROUP_KINDS = ['cover', 'original', 'album', 'clip'];
-const CACHE_TTL = 600; // 드라이브 목록 캐시 (초)
+const CACHE_TTL = 21600; // 드라이브 목록 캐시 (초) — warmCache 가 10분마다 새로 채운다
 
 const props = PropertiesService.getScriptProperties();
 
@@ -68,6 +68,7 @@ function setup() {
     props.setProperty('SITE_FILE_ID', f.getId());
   }
   ensureFolders_(readSite_());
+  installWarm();
   Logger.log('완료: ' + root.getUrl());
 }
 
@@ -76,6 +77,9 @@ function doGet(e) {
   const action = (e.parameter && e.parameter.action) || 'bootstrap';
   try {
     if (action === 'bootstrap') return out_({ ok: true, site: readSite_(), items: allItems_() });
+    // 사이트 설정은 금방 오니 먼저 보내고, 드라이브 목록은 따로 받는다
+    if (action === 'site') return out_({ ok: true, site: readSite_() });
+    if (action === 'items') return out_({ ok: true, items: allItems_() });
     return out_({ ok: false, error: '모르는 요청' });
   } catch (err) { return out_({ ok: false, error: String(err) }); }
 }
@@ -449,6 +453,16 @@ function cacheGet_(key) {
   return keys.map(k => got[k]).join('');
 }
 function clearCache_() { CacheService.getScriptCache().remove('items_n'); }
+
+/* 드라이브 목록을 10분마다 미리 읽어 둔다 — 파일이 많아도 사이트가 바로 뜨게.
+   setup() 이 걸어 두고, 따로 돌려도 된다 (여러 번 돌려도 하나만 걸린다) */
+function warmCache() { clearCache_(); allItems_(); }
+function installWarm() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'warmCache').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('warmCache').timeBased().everyMinutes(10).create();
+  warmCache();
+  Logger.log('10분마다 목록 미리 읽기를 걸었다');
+}
 
 /* ─── 예전 「노래」·「팬아트」 폴더 정리 (한 번만 돌린다) ───
    moveOldPreview() 로 어디로 갈지 기록만 먼저 보고, moveOld() 로 실제로 옮긴다.

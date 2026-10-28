@@ -297,6 +297,7 @@ input, select, textarea { font: inherit; color: inherit; }
 
 /* ══ 멤버 (기수별) ══ */
 .gen { display: flex; flex-wrap: wrap; gap: 32px; border-top: 1px solid var(--line2); padding-top: 28px; }
+.gen + .gen { margin-top: -50px; } /* 기수끼리는 붙여서 (본문 간격 88px → 38px) */
 .gen-h { flex: 1 1 200px; display: flex; flex-direction: column; gap: 4px; }
 .gen-h b { font-family: var(--bodoni); font-weight: 400; font-size: 72px; line-height: .9; color: var(--g); }
 .gen-h i { font-family: var(--bodoni); font-size: 30px; }

@@ -145,10 +145,24 @@ const Data = {
     if (cached && LIVE) { this.set(cached.site, cached.items); }
     try {
       if (LIVE) {
-        const res = await fetch(CFG.scriptUrl + '?action=bootstrap').then(r => r.json());
-        if (!res.ok) throw new Error(res.error);
-        this.set(res.site, res.items);
-        store.set('cache', { site: res.site, items: res.items });
+        // 사이트 설정(빠름)과 드라이브 목록(파일이 많으면 느림)을 따로 받아서, 온 것부터 그린다
+        const get = a => fetch(CFG.scriptUrl + '?action=' + a).then(r => r.json());
+        const itemsP = get('items');
+        const s = await get('site');
+        if (!s.ok) { // 예전 서버 코드면 한 번에 받는다
+          const res = await get('bootstrap');
+          if (!res.ok) throw new Error(res.error);
+          this.set(res.site, res.items);
+          store.set('cache', { site: res.site, items: res.items });
+          return;
+        }
+        let items = cached?.items || [];
+        this.set(s.site, items);
+        store.set('cache', { site: s.site, items });
+        const r = await itemsP;
+        if (!r.ok) throw new Error(r.error);
+        this.set(s.site, r.items);
+        store.set('cache', { site: s.site, items: r.items });
       } else {
         const site = await fetch('data/site.json', { cache: 'no-cache' }).then(r => r.json());
         this.set(site, store.get('demoItems', []));
