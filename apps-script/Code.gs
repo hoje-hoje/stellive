@@ -110,8 +110,9 @@ const ACTIONS = {
     const meta = { title: (b.title || '').trim(), members: members, group: b.group || '', byEmail: u.email, byName: u.name };
     if (/^https?:\/\//.test(String(b.url || ''))) meta.url = String(b.url).trim();
     file.setDescription(JSON.stringify(meta));
-    clearCache_();
-    return { item: fileItem_(file, b.kind, meta, site) };
+    const item = fileItem_(file, b.kind, meta, site);
+    editCache_(list => [item].concat(list));
+    return { item: item };
   },
 
   addLink(b, u) {
@@ -126,8 +127,9 @@ const ACTIONS = {
     const alt = String(b.alt || '').trim(); // 같은 노래의 드라이브 파일 (유튜브가 막힌 곳에서 대신 튼다)
     const row = [id, b.kind, (b.title || '').trim(), url, JSON.stringify(members), b.group || '', u.email, u.name, at, alt];
     sheet_('links').appendRow(row);
-    clearCache_();
-    return { item: linkItem_(row) };
+    const item = linkItem_(row);
+    editCache_(list => [item].concat(list));
+    return { item: item };
   },
 
   remove(b, u) {
@@ -146,7 +148,7 @@ const ACTIONS = {
       if (!admin && meta.byEmail !== u.email) throw new Error('자기가 올린 것만 지울 수 있다');
       file.setTrashed(true);
     }
-    clearCache_();
+    editCache_(list => list.filter(x => x.id !== b.id));
     return {};
   },
 
@@ -169,7 +171,7 @@ const ACTIONS = {
       meta.title = title;
       file.setDescription(JSON.stringify(meta));
     }
-    clearCache_();
+    editCache_(list => list.map(x => (x.id === b.id ? Object.assign(x, { title: title }) : x)));
     return {};
   },
 
@@ -194,10 +196,14 @@ const ACTIONS = {
     const site = b.site;
     if (!site || !Array.isArray(site.members) || !Array.isArray(site.groups)) throw new Error('사이트 데이터가 이상하다');
     const file = DriveApp.getFileById(props.getProperty('SITE_FILE_ID'));
-    backupSite_(file.getBlob().getDataAsString(), u);
+    const before = file.getBlob().getDataAsString();
+    backupSite_(before, u);
     file.setContent(JSON.stringify(site, null, 2));
-    ensureFolders_(site);
-    clearCache_();
+    // 멤버·기수 구성이 바뀐 때만 폴더를 손보고 목록을 새로 읽는다 (글자·그림만 바꾸면 바로 끝난다)
+    const shape = x => JSON.stringify([(x.members || []).map(m => [m.id, m.name, m.group]), (x.groups || []).map(g => [g.id, g.label])]);
+    let old = {};
+    try { old = JSON.parse(before || '{}'); } catch (e) {}
+    if (shape(old) !== shape(site)) { ensureFolders_(site); clearCache_(); }
     return { site: site };
   },
 
@@ -335,6 +341,9 @@ function cleanMembers_(list, site) {
 function allItems_() {
   const cached = cacheGet_('items');
   if (cached) return JSON.parse(cached);
+  return buildItems_();
+}
+function buildItems_() {
   const site = readSite_();
   const items = driveItems_(site).concat(linkItems_());
   items.sort((a, b) => (b.at > a.at ? 1 : -1));
@@ -453,10 +462,16 @@ function cacheGet_(key) {
   return keys.map(k => got[k]).join('');
 }
 function clearCache_() { CacheService.getScriptCache().remove('items_n'); }
+// 올리기·지우기·제목 고치기는 목록을 통째로 다시 읽지 않고 받아 둔 목록만 고친다
+function editCache_(fn) {
+  const cached = cacheGet_('items');
+  if (!cached) return;
+  cachePut_('items', JSON.stringify(fn(JSON.parse(cached))), CACHE_TTL);
+}
 
 /* 드라이브 목록을 10분마다 미리 읽어 둔다 — 파일이 많아도 사이트가 바로 뜨게.
    setup() 이 걸어 두고, 따로 돌려도 된다 (여러 번 돌려도 하나만 걸린다) */
-function warmCache() { clearCache_(); allItems_(); }
+function warmCache() { buildItems_(); } // 다 읽은 뒤에 갈아 끼우니 읽는 동안에도 사이트는 빠르다
 function installWarm() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'warmCache').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('warmCache').timeBased().everyMinutes(10).create();
