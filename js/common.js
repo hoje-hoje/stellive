@@ -213,6 +213,59 @@ function audioThumbs(items, site) {
   });
 }
 
+/* 영상 썸네일이 어둡고 무채색(검정·회색)인지 본다 — 그러면 노래 창 배경을 영상 색 대신 원래 테마 색으로 둔다.
+   작은 썸네일 한 장을 24×24 로 줄여서 보고, 결과는 이 브라우저에 기억해서 다음엔 다시 안 본다.
+   그림을 읽을 수 없으면(다른 사이트가 막으면) 그냥 원래처럼 영상 색을 쓴다 */
+const Tone = {
+  cache: store.get('tone', {}),
+  known(it) { return this.cache[it.id]; },
+  async dull(it) {
+    if (it.id in this.cache) return this.cache[it.id];
+    const src = await this.src(it);
+    if (!src) return false;
+    const v = await new Promise(ok => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = c.height = 24;
+          const x = c.getContext('2d');
+          x.drawImage(img, 0, 0, 24, 24);
+          const d = x.getImageData(0, 0, 24, 24).data;
+          let l = 0, s = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
+            l += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            s += Math.max(r, g, b) - Math.min(r, g, b);
+          }
+          ok({ l: l / (d.length / 4), s: s / (d.length / 4) });
+        } catch { ok(null); }
+      };
+      img.onerror = () => ok(null);
+      setTimeout(() => ok(null), 5000);
+      img.src = src;
+    });
+    if (!v) return false;
+    const dull = v.l < 0.14 || (v.s < 0.12 && v.l < 0.6);
+    this.cache[it.id] = dull;
+    const keys = Object.keys(this.cache);
+    if (keys.length > 2000) keys.slice(0, 500).forEach(k => delete this.cache[k]);
+    store.set('tone', this.cache);
+    return dull;
+  },
+  async src(it) {
+    if (it.ytId) return `https://i.ytimg.com/vi/${it.ytId}/mqdefault.jpg`;
+    if (it.driveId && CFG.driveApiKey) {
+      try {
+        const r = await fetch(`https://www.googleapis.com/drive/v3/files/${it.driveId}?fields=thumbnailLink&supportsAllDrives=true&key=${CFG.driveApiKey}`).then(r => r.json());
+        return r.thumbnailLink || '';
+      } catch { return ''; }
+    }
+    return /^https?:/.test(it.thumb || '') ? it.thumb : '';
+  },
+};
+
 /* ─── 서버 요청 ─── */
 async function api(action, payload = {}) {
   if (!LIVE) throw new Error('아직 서버(Apps Script)가 연결되지 않았다. README 를 보자');

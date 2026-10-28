@@ -180,7 +180,7 @@ function eventsOn(y, mo, d) {
   const iso = `${y}-${pad2(mo + 1)}-${pad2(d)}`, md = iso.slice(5), out = [];
   for (const m of Data.site.members) {
     if (m.graduated) continue;
-    if (m.birthday && m.birthday.slice(-5) === md) out.push({ type: 'birthday', title: t('event.birthdayTitle', { name: m.name }), color: m.color });
+    if (m.birthday && m.birthday.slice(-5) === md) out.push({ type: 'birthday', title: t('event.birthdayTitle', { name: m.name }), color: m.color, member: m });
     if (m.debut && m.debut.slice(5) === md && +m.debut.slice(0, 4) < y) out.push({ type: 'debut', title: t('event.debutTitle', { name: m.name, n: y - +m.debut.slice(0, 4) }), color: m.color });
   }
   for (const e of Data.site.events) {
@@ -198,9 +198,12 @@ function calendarHtml(big) {
   for (let i = 0; i < first; i++) cells += '<div class="cd blank"></div>';
   for (let d = 1; d <= days; d++) {
     const key = `${y}-${mo}-${d}`, ev = eventsOn(y, mo, d);
-    cells += `<button type="button" class="cd ${todayKey === key ? 'today' : ''} ${state.calPick === key ? 'pick' : ''}" data-day="${key}" aria-label="${mo + 1}월 ${d}일${ev.length ? ' 일정 ' + ev.length + '개' : ''}">
+    // 생일인 날은 그 멤버 색으로 칸을 물들이고, 프로필 사진과 반짝이를 올린다
+    const bd = ev.find(e => e.type === 'birthday');
+    cells += `<button type="button" class="cd ${todayKey === key ? 'today' : ''} ${state.calPick === key ? 'pick' : ''} ${bd ? 'bday' : ''}" ${bd ? `style="--c:${esc(bd.color || 'var(--accent)')}"` : ''} data-day="${key}" aria-label="${mo + 1}월 ${d}일${ev.length ? ' 일정 ' + ev.length + '개' : ''}">
       <span class="n">${d}</span>
-      ${ev.slice(0, 2).map(e => `<span class="ev" ${e.color ? `style="--c:${esc(e.color)}"` : ''}>${esc(e.title)}</span>`).join('')}
+      ${bd ? `<span class="bd-av">${avatarHtml(bd.member, 'av')}</span><i class="bd-sp" aria-hidden="true">${ICON.sparkle}</i>` : ''}
+      ${ev.slice(0, 2).map(e => `<span class="ev ${e.type === 'birthday' ? 'ev-bd' : ''}" ${e.color ? `style="--c:${esc(e.color)}"` : ''}>${e.type === 'birthday' ? '🎂 ' : ''}${esc(e.title)}</span>`).join('')}
       ${ev.length > 2 ? `<span class="ev more">+${ev.length - 2}</span>` : ''}
     </button>`;
   }
@@ -227,8 +230,9 @@ function calendarHtml(big) {
         <button type="button" class="btn sm line" data-cal="0">${esc(t('cal.today'))}</button>
       </div>
       <h3>${state.calPick ? esc(t('cal.monthDay', { m: +state.calPick.split('-')[1] + 1, d: state.calPick.split('-')[2] })) : esc(t('cal.upcoming'))}</h3>
-      ${list.length ? `<ul class="up-list">${list.map(e => `<li style="${e.color ? `--c:${esc(e.color)}` : ''}">
+      ${list.length ? `<ul class="up-list">${list.map(e => `<li class="${e.type === 'birthday' ? 'up-bd' : ''}" style="${e.color ? `--c:${esc(e.color)}` : ''}">
         <span class="d">${state.calPick ? `${e.d.getMonth() + 1}/${e.d.getDate()}` : dday(e.d)}</span>
+        ${e.type === 'birthday' ? avatarHtml(e.member, 'av') : ''}
         <span class="t"><em>${esc(eventType(e.type))} · ${e.d.getMonth() + 1}/${e.d.getDate()}</em>${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a>` : esc(e.title)}</span>
       </li>`).join('')}</ul>` : `<p class="muted">${esc(t('cal.none'))}</p>`}
     </div>
@@ -497,6 +501,19 @@ const Glow = {
   },
 };
 
+// 노래 창 배경 고르기: 영상 썸네일이 어두운 무채색이면 배경을 칠하지 않고 원래 테마로 둔다 (mp3 표지는 그대로 쓴다)
+function playGlow() {
+  const it = Player.current();
+  if (!it) return Glow.set('');
+  const color = Data.member(it.members[0])?.color || Data.group(it.group)?.color || 'var(--accent)';
+  const video = !(it.media === 'audio' && !it.ytId);
+  if (video && Tone.known(it) === true) return Glow.set('');
+  Glow.set(it.thumb || '', color);
+  if (video && Tone.known(it) === undefined) {
+    Tone.dull(it).then(dull => { if (dull && Player.current() === it && location.hash.startsWith('#/play')) Glow.set(''); });
+  }
+}
+
 // 곡이 바뀌면 노래 창을 다시 그린다
 Player.onChange(() => { if (location.hash.startsWith('#/play')) route(true); });
 
@@ -732,7 +749,7 @@ function route(keepScroll) {
   else renderNotFound();
   ensureFoot();
   if (page === 'play' && $('#npSlot')) Player.enterPage($('#npSlot'));
-  if (page === 'play') { const it = Player.current(); Glow.set(it?.thumb || '', it && (Data.member(it.members[0])?.color || Data.group(it.group)?.color || 'var(--accent)')); }
+  if (page === 'play') playGlow();
   markNav();
   applyPositions(view);
   Menu.closeDrawer();
