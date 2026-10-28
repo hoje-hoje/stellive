@@ -16,7 +16,7 @@ const ADMIN_EMAILS = [
 ];
 
 /* ③ 사이트 주소 — 처음 setup 할 때 site.json 을 여기서 받아온다 */
-const SITE_URL = 'https://hoje-hoje.github.io/stellive/';
+const SITE_URL = 'https://stelarchive.github.io/';
 
 /* ④ 파일을 모을 드라이브 폴더 id — 비워 두면 내 드라이브에 '스텔라이브 아카이브' 폴더를 새로 만든다.
       공유 드라이브를 쓰려면 그 주소 끝의 id 를 넣는다 (drive.google.com/drive/folders/여기) */
@@ -57,7 +57,7 @@ function setup() {
   if (!props.getProperty('SITE_FILE_ID')) {
     // 사이트(GitHub Pages)가 아직 안 켜져 있으면 리포지토리 원본에서 받는다
     let json = '{}';
-    for (const url of [SITE_URL + 'data/site.json', 'https://raw.githubusercontent.com/hoje-hoje/stellive/main/data/site.json']) {
+    for (const url of [SITE_URL + 'data/site.json', 'https://raw.githubusercontent.com/stelarchive/stelarchive.github.io/main/data/site.json']) {
       try {
         const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
         if (res.getResponseCode() === 200 && res.getContentText().trim().startsWith('{')) { json = res.getContentText(); break; }

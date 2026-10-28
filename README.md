@@ -43,7 +43,7 @@ js/                 화면 코드
 ## 1. GitHub Pages 켜기
 
 `Settings → Pages → Source` 를 **Deploy from a branch**, 브랜치 `main`, 폴더 `/ (root)` 로 저장.
-1~2분 뒤 `https://hoje-hoje.github.io/stellive/` 에 뜬다.
+1~2분 뒤 `https://stelarchive.github.io/` 에 뜬다.
 
 ## 2. 구글 계정 고르기 ⚠️
 
@@ -77,7 +77,7 @@ js/                 화면 코드
 **로그인 (OAuth 클라이언트 ID)**
 1. `API 및 서비스 → OAuth 동의 화면` → 외부 → 앱 이름 · 이메일만 넣고 저장. **앱 게시**까지 눌러둔다.
 2. `사용자 인증 정보 → 만들기 → OAuth 클라이언트 ID` → 유형 **웹 애플리케이션**
-   - 승인된 자바스크립트 원본: `https://hoje-hoje.github.io`
+   - 승인된 자바스크립트 원본: `https://stelarchive.github.io`
      (집에서 시험하려면 `http://localhost:8000` 도)
 3. 나온 클라이언트 ID 를 `config.js` 의 `googleClientId` **와** `Code.gs` 의 `CLIENT_ID` 에 넣는다.
    (Code.gs 를 고쳤으니 3-⑤ 처럼 새 버전으로 다시 배포)
@@ -86,7 +86,7 @@ js/                 화면 코드
 1. `API 및 서비스 → 라이브러리` → **Google Drive API** 사용 설정.
 2. `사용자 인증 정보 → 만들기 → API 키`.
 3. 키를 눌러서 제한 설정:
-   - 애플리케이션 제한: **웹사이트** → `https://hoje-hoje.github.io/*`
+   - 애플리케이션 제한: **웹사이트** → `https://stelarchive.github.io/*`
    - API 제한: **Google Drive API** 만
 4. `config.js` 의 `driveApiKey` 에 넣는다.
 
@@ -95,7 +95,7 @@ js/                 화면 코드
 
 ## 5. 관리자 페이지
 
-`https://hoje-hoje.github.io/stellive/admin.html` 을 열면 **사이트가 그대로 편집 모드로** 뜬다 (`./?edit`).
+`https://stelarchive.github.io/admin.html` 을 열면 **사이트가 그대로 편집 모드로** 뜬다 (`./?edit`).
 
 - **고치기 모드**: 점선 테두리 글자를 누르면 그 자리에서 고친다 (Enter 로 끝, Esc 로 취소).
   주황 점선 그림(로고 · 배너 · 첫 화면 그림 · 멤버 사진 · 전신 일러스트 · 맨 아래 배경 …)을 누르면 바꾸는 창이 뜬다.
