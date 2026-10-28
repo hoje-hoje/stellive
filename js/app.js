@@ -628,6 +628,17 @@ const Intro = {
   shouldShow() { return store.get('introSkip') !== this.today(); },
   isOpen() { return !$('#intro').hidden && !$('#intro').classList.contains('leaving'); },
   show() {
+    this.paint();
+    $('#skipToday').checked = store.get('introSkip') === this.today();
+    const el = $('#intro');
+    el.classList.remove('leaving');
+    el.hidden = false;
+    document.body.style.overflow = 'hidden';
+    Menu.closeDrawer();
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) $('#introOrbit')?.pauseAnimations?.();
+  },
+  // 그림·글자만 다시 채운다 (서버에서 사이트 설정이 늦게 와도 열린 채로 바뀐다)
+  paint() {
     const introV = layersOf(Data.site?.images?.intro).layers.length ? Data.site.images.intro : Data.site?.banner?.image;
     const img = layersOf(introV).layers.length;
     const crest = Data.site?.images?.crest ? siteImg('crest', 800) : '';
@@ -639,12 +650,6 @@ const Intro = {
     sky.classList.toggle('has-img', !!img);
     fillTexts($('#intro'));
     $('#introDots').innerHTML = Theme.dots();
-    $('#skipToday').checked = store.get('introSkip') === this.today();
-    const el = $('#intro');
-    el.classList.remove('leaving');
-    el.hidden = false;
-    document.body.style.overflow = 'hidden';
-    Menu.closeDrawer();
   },
   // 왼쪽으로 천천히 밀려나며 사라진다
   hide() {
@@ -930,7 +935,7 @@ Favs.on(() => {
   $$('[data-fav]').forEach(b => { const on = Favs.has(b.dataset.fav); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.innerHTML = on ? ICON.star : ICON.starO; });
   if (location.hash.startsWith('#/stars')) route(true);
 });
-Data.on(() => { applySiteStyle(Data.site); applyKindNames(); fillTexts(); renderDrawer(); route(true); });
+Data.on(() => { applySiteStyle(Data.site); applyKindNames(); fillTexts(); renderDrawer(); route(true); if (Intro.isOpen()) Intro.paint(); });
 addEventListener('hashchange', () => route());
 
 $('#cornerDots').innerHTML = Theme.dots();
@@ -956,4 +961,6 @@ Player.setPlaying(false);
 Player.paintModes();
 Player.paintPrefer();
 Auth.init();
-window.dataReady = Data.load().then(() => { if (!EDIT && !location.hash.slice(2) && Intro.shouldShow()) Intro.show(); });
+// 첫 화면은 서버를 기다리지 않고 바로 띄운다
+if (!EDIT && !location.hash.slice(2) && Intro.shouldShow()) Intro.show();
+window.dataReady = Data.load();

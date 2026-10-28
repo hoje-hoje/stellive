@@ -29,6 +29,21 @@
     </div>
   </div>
   <div class="in-sky" id="introSky" data-ei="images.intro"></div>
+  <!-- 공전하는 별: 앞(아래)으로 올 때 커지고 밝게, 뒤(위)로 갈 때 작고 흐리게 -->
+  <svg class="in-orbit" id="introOrbit" viewBox="0 0 400 200" aria-hidden="true">
+    <defs><path id="orbitPath" d="M20 100A180 58 0 1 0 380 100A180 58 0 1 0 20 100"/></defs>
+    <use href="#orbitPath" class="orb-line"/>
+    <circle class="orb-core" cx="200" cy="100" r="9"/>
+    <g>
+      <animateMotion dur="16s" repeatCount="indefinite"><mpath href="#orbitPath"/></animateMotion>
+      <g>
+        <animateTransform attributeName="transform" type="scale" dur="16s" repeatCount="indefinite" values=".7;1.35;.7;.45;.7" keyTimes="0;.25;.5;.75;1" calcMode="spline" keySplines=".4 0 .6 1;.4 0 .6 1;.4 0 .6 1;.4 0 .6 1"/>
+        <animate attributeName="opacity" dur="16s" repeatCount="indefinite" values=".75;1;.75;.35;.75" keyTimes="0;.25;.5;.75;1"/>
+        <circle class="orb-glow" r="13"/>
+        <path class="orb-star" transform="scale(1.45)" d="M0-9C.5-2.5 2.5-.5 9 0 2.5.5.5 2.5 0 9-.5 2.5-2.5.5-9 0-2.5-.5-.5-2.5 0-9Z"/>
+      </g>
+    </g>
+  </svg>
   <div class="in-dots" id="introDots"></div>
   <div class="in-type">
     <span class="sc" data-t="intro.kicker"></span>

@@ -131,6 +131,14 @@ input, select, textarea { font: inherit; color: inherit; }
 [data-theme="white"] .in-sky:not(.has-img) { background: radial-gradient(55% 60% at 80% 35%, rgba(169,155,255,.18), transparent 70%), #fcfbff; }
 .in-sky.has-img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--scrim), transparent 60%); }
 .in-dots { position: absolute; right: 40px; top: 28px; z-index: 2; }
+.in-orbit { position: absolute; right: 5%; top: 9%; width: min(44vw, 78vh); height: auto; transform: rotate(-14deg); pointer-events: none; color: var(--accent); overflow: visible; }
+[data-theme="dark"] .in-orbit, [data-theme="lavender"] .in-orbit { color: #fff; }
+.orb-line { fill: none; stroke: currentColor; stroke-width: .6; stroke-dasharray: 2 5; opacity: .35; }
+.orb-core { fill: currentColor; opacity: .16; filter: blur(2px); }
+.orb-glow { fill: currentColor; opacity: .18; filter: blur(4px); }
+.orb-star { fill: currentColor; filter: drop-shadow(0 0 4px currentColor); }
+#intro.leaving .in-orbit { opacity: 0; transition: opacity .6s; }
+@media (max-width: 820px) { .in-orbit { width: 80vw; right: -6%; top: 6%; } }
 .in-type {
   --t: min(10vw, 19vh);
   position: absolute; left: calc(clamp(180px, 17vw, 320px) + 56px); top: 50%; transform: translateY(-56%);
