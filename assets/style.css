@@ -750,7 +750,10 @@ body.editing a { -webkit-user-drag: none; }
   background: var(--panel); color: var(--fg); border: 1px solid var(--line2); box-shadow: 0 20px 60px rgba(0,0,0,.45);
   padding: 16px; display: flex; flex-direction: column; gap: 12px; font-family: var(--sans); font-size: 14px;
 }
-.lp-h { display: flex; align-items: center; justify-content: space-between; }
+.lp-h { position: sticky; top: -16px; z-index: 2; background: var(--panel); display: flex; align-items: center; justify-content: space-between; cursor: move; user-select: none; touch-action: none; margin: -16px -16px 0; padding: 12px 12px 10px 16px; border-bottom: 1px solid var(--line); }
+.lp-h::before { content: '⠿'; color: var(--dim); margin-right: 8px; font-size: 14px; }
+.lp-h b { margin-right: auto; }
+#laypanel.moving { opacity: .92; box-shadow: 0 28px 80px rgba(0,0,0,.5); }
 .lp-h b { font-family: var(--batang); font-size: 18px; }
 .lp-sw { display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
 .lp-sw input { width: 18px; height: 18px; accent-color: var(--accent); }

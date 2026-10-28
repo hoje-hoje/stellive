@@ -466,6 +466,34 @@
   }, true);
   addEventListener('hashchange', () => Pos.close());
 
+  /* ── 판을 창처럼: 제목 줄을 끌면 판이 옮겨지고, 다음에 열 때도 그 자리에 뜬다 ── */
+  const placePanel = (x, y) => {
+    x = Math.min(Math.max(8, x), innerWidth - Math.max(panel.offsetWidth, 200) - 8);
+    y = Math.min(Math.max(8, y), innerHeight - 160);
+    Object.assign(panel.style, { left: x + 'px', top: y + 'px', right: 'auto', maxHeight: `calc(100vh - ${y}px - 16px - var(--player))` });
+  };
+  const savedPanel = store.get('panelPos');
+  if (savedPanel) placePanel(savedPanel[0], savedPanel[1]);
+  panel.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || !e.target.closest('.lp-h') || e.target.closest('button')) return;
+    e.preventDefault();
+    const r = panel.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top;
+    panel.classList.add('moving');
+    const move = ev => placePanel(ev.clientX - ox, ev.clientY - oy);
+    const up = () => {
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', up);
+      panel.classList.remove('moving');
+      store.set('panelPos', [parseFloat(panel.style.left), parseFloat(panel.style.top)]);
+      // 판 밖에서 손을 떼도 '바깥 누르기'로 닫히지 않게
+      Lay.justDragged = Pos.justDragged = true;
+      setTimeout(() => { Lay.justDragged = Pos.justDragged = false; }, 0);
+    };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+  });
+  addEventListener('resize', () => { if (panel.style.left) placePanel(parseFloat(panel.style.left), parseFloat(panel.style.top)); });
+
   /* ── 백업 창 ── */
   const BackupWin = {
     el: null,
