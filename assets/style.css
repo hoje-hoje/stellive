@@ -996,3 +996,12 @@ body.cm-open .sh-nav { display: none; }
   @keyframes cm-up { from { transform: translateY(40px); opacity: 0; } }
   .sh-feed.wide .sh-card { height: auto; width: 100%; }
 }
+
+/* 썸네일을 못 불러왔을 때 */
+.img-broken { background: linear-gradient(135deg, color-mix(in srgb, var(--c, var(--accent)) 45%, var(--tile)), var(--tile)) !important; }
+.s-th.img-broken::before, .c-th.img-broken::before, .sh-tile.img-broken::before, .sh-media.img-broken::before, .art.img-broken::before {
+  content: '♪'; position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,.9); font-size: 22px; text-shadow: 0 1px 6px rgba(0,0,0,.2);
+}
+.c-th.img-broken::before, .sh-tile.img-broken::before, .sh-media.img-broken::before { content: '▶'; font-size: 26px; }
+.art.img-broken { position: relative; aspect-ratio: 1; }
+.art.img-broken::before { content: '✦'; font-size: 30px; }

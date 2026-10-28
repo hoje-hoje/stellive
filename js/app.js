@@ -54,7 +54,7 @@ function songList(items, label) {
   return `<ol class="songs" data-label="${esc(label || '')}">${items.map((it, i) => `
     <li class="song ${Player.current()?.id === it.id ? 'now' : ''}" data-play="${esc(it.id)}">
       <span class="s-n">${pad2(i + 1)}</span>
-      <span class="s-th">${it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy" decoding="async">` : `<b class="s-ph">♪</b>`}${it.playable ? `<i>${ICON.play}</i>` : ''}</span>
+      <span class="s-th" style="--c:${esc(Data.member(it.members[0])?.color || '')}">${it.thumb ? `<img src="${esc(it.thumb)}" alt="" loading="lazy" decoding="async">` : `<b class="s-ph">♪</b>`}${it.playable ? `<i>${ICON.play}</i>` : ''}</span>
       <span class="s-t"><b>${esc(it.title)}</b><small>${esc(memberNames(it).join(' · '))}${it.group && Data.group(it.group) ? ` · ${esc(t('list.groupTag', { label: Data.group(it.group).label }))}` : it.group === 'all' ? ` · ${esc(t('list.allTag'))}` : ''}</small></span>
       <span class="srcs">${it.ytId ? `<span>${esc(t('list.srcYt'))}</span>` : ''}${it.hasDrive ? `<span>${esc(t('list.srcDrive'))}</span>` : ''}</span>
       <span class="s-x">
@@ -292,6 +292,16 @@ const Comments = {
     } catch (e) { toast(e.message, true); }
   },
 };
+// 썸네일이 안 열리면 깨진 그림 대신 멤버 색 바탕 + 기호로 보여 준다
+document.addEventListener('error', e => {
+  const img = e.target;
+  if (img.tagName !== 'IMG' || /oardefault/.test(img.src)) return; // 쇼츠 세로 썸네일은 가로 썸네일로 한 번 더 시도한다
+  const box = img.closest('.s-th, .c-th, .sh-media, .sh-tile, .art');
+  if (!box) return;
+  img.remove();
+  box.classList.add('img-broken');
+}, true);
+
 document.addEventListener('submit', e => {
   if (e.target.id !== 'cmForm') return;
   e.preventDefault();
