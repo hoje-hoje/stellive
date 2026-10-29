@@ -1201,14 +1201,36 @@ function closeModals() {
 /* ─── 올리기 ─── */
 const up = { kind: 'cover', members: new Set() };
 
+// 쇼츠와 클립은 올리기에서 하나로 고르고, 올릴 때 링크(유튜브 /shorts/)나 영상 비율(세로면 쇼츠)로 알아서 나눈다
+const isVideoKind = k => k === 'clip' || k === 'shorts';
+function guessShortsFromUrl(u) { return /youtube\.com\/shorts\//i.test(u || ''); }
+function videoIsVertical(file) {
+  return new Promise(ok => {
+    if (!/^video\//.test(file.type)) return ok(false);
+    const v = document.createElement('video'), u = URL.createObjectURL(file);
+    const done = r => { URL.revokeObjectURL(u); ok(r); };
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => done(v.videoHeight > v.videoWidth);
+    v.onerror = () => done(false);
+    setTimeout(() => done(false), 4000);
+    v.src = u;
+  });
+}
+async function pickVideoKind(url, file) {
+  if (guessShortsFromUrl(url)) return 'shorts';
+  if (file && (await videoIsVertical(file))) return 'shorts';
+  return 'clip';
+}
+
 function openUpload(pre = {}) {
   up.kind = pre.kind || up.kind;
+  if (up.kind === 'shorts') up.kind = 'clip'; // 고르는 칸은 「쇼츠 · 클립」 하나
   up.members = new Set(pre.members || []);
   if (!up.members.size) {
     const [, page, id] = location.hash.split('/');
     if (page === 'm') up.members.add(id);
   }
-  $('#upKind').innerHTML = KINDS.map(k => `<button type="button" class="chip ${k.id === up.kind ? 'on' : ''}" data-uk="${k.id}" aria-pressed="${k.id === up.kind}">${k.name}</button>`).join('');
+  $('#upKind').innerHTML = KINDS.filter(k => k.id !== 'shorts').map(k => `<button type="button" class="chip ${k.id === up.kind ? 'on' : ''}" data-uk="${k.id}" aria-pressed="${k.id === up.kind}">${k.id === 'clip' ? esc(t('upload.videoKind')) : k.name}</button>`).join('');
   $('#upMembers').innerHTML = Data.site.members.map(m => `<button type="button" class="chip ${up.members.has(m.id) ? 'on' : ''}" data-um="${esc(m.id)}" aria-pressed="${up.members.has(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}${esc(m.name)}</button>`).join('');
   $('#upGroup').innerHTML = `<option value="">${esc(t('upload.groupNo'))}</option><option value="all">${esc(t('upload.groupAll'))}</option>` +
     Data.site.groups.map(g => `<option value="${esc(g.id)}">${esc(g.label)} ${esc(g.name)}</option>`).join('');
@@ -1242,28 +1264,29 @@ $('#upload form').addEventListener('submit', async e => {
   try {
     btn.disabled = true;
     let item;
+    const kind = isVideoKind(up.kind) ? await pickVideoKind(url || alt, f) : up.kind;
     if (f) {
       if (f.size > (CFG.maxUploadMB || 35) * 1048576) throw new Error(tRaw('upload.errSize', { mb: CFG.maxUploadMB || 35 }));
       if (!LIVE) throw new Error(tRaw('upload.errDemo'));
       status.textContent = tRaw('upload.reading');
       const data = await fileToBase64(f);
       status.textContent = tRaw('upload.uploading');
-      item = (await api('upload', { kind: up.kind, title, members, group, filename: f.name, mimeType: f.type, data, url })).item;
+      item = (await api('upload', { kind, title, members, group, filename: f.name, mimeType: f.type, data, url })).item;
     } else {
       const main = url || alt, second = url ? alt : '';
       if (!/^https?:\/\//.test(main) || (second && !/^https?:\/\//.test(second))) throw new Error(tRaw('upload.errLink'));
       if (!LIVE) {
-        item = { id: 'l_' + Date.now(), kind: up.kind, title: title || main, src: 'link', url: main, alt: second, members, group, by: '나', at: new Date().toISOString() };
+        item = { id: 'l_' + Date.now(), kind, title: title || main, src: 'link', url: main, alt: second, members, group, by: '나', at: new Date().toISOString() };
         store.set('demoItems', [item, ...store.get('demoItems', [])]);
       } else {
         status.textContent = tRaw('upload.sending');
-        item = (await api('addLink', { kind: up.kind, title, url: main, alt: second, members, group })).item;
+        item = (await api('addLink', { kind, title, url: main, alt: second, members, group })).item;
       }
     }
     Data.items.unshift(enrich(item));
     store.set('cache', { site: Data.site, items: Data.items.map(({ _ok, ...x }) => x) });
     $('#upload').hidden = true;
-    toast(tRaw('upload.done'));
+    toast(isVideoKind(kind) ? tRaw('upload.doneAs', { kind: KIND[kind].name }) : tRaw('upload.done'));
     route(true);
   } catch (err) {
     status.textContent = err.message;
