@@ -304,6 +304,8 @@ const Comments = {
   },
   async remove(id) {
     if (!confirm(tRaw('cm.confirmDelete'))) return;
+    toast(tRaw('upload.deleting'), false, true);
+    $$(`[data-cmdel="${CSS.escape(id)}"]`).forEach(b => b.closest('li')?.classList.add('deleting'));
     try {
       if (LIVE) await api('removeComment', { id });
       else store.set('demoComments', store.get('demoComments', []).filter(c => c.id !== id));
@@ -311,6 +313,7 @@ const Comments = {
       this.counts[this.openId] = Math.max(0, (this.counts[this.openId] || 1) - 1);
       this.paint();
       this.paintCounts();
+      toast(tRaw('upload.deleted'));
     } catch (e) { toast(e.message, true); }
   },
 };
@@ -1240,6 +1243,8 @@ function openUpload(pre = {}) {
   fillTexts($('#upload'));
   $('#upHint').textContent = !LIVE ? tRaw('upload.demo') : Auth.user ? tRaw('upload.as', { name: Auth.user.name }) : tRaw('upload.login');
   $('#upload').hidden = false;
+  $('#upQuota').textContent = Quota.text();
+  Quota.load().then(() => { $('#upQuota').textContent = Quota.text(); });
 }
 
 $('#upload').addEventListener('click', e => {
@@ -1300,7 +1305,7 @@ async function renameItem(id) {
   if (title === null || !title.trim() || title.trim() === it.title) return;
   try {
     if (!LIVE) store.set('demoItems', store.get('demoItems', []).map(x => (x.id === id ? { ...x, title: title.trim() } : x)));
-    else await api('rename', { id, title: title.trim() });
+    else { toast(tRaw('upload.saving'), false, true); await api('rename', { id, title: title.trim() }); }
     it.title = title.trim();
     if (Player.current()?.id === id) Player.paintNow(it);
     Player.paintQueue();
@@ -1311,13 +1316,21 @@ async function renameItem(id) {
 
 async function deleteItem(id) {
   if (!confirm(tRaw('upload.confirmDelete'))) return;
+  // 서버가 지우는 데 몇 초 걸리니 바로 "지우는 중"을 띄우고, 그 칸은 흐리게 해서 못 누르게
+  toast(tRaw('upload.deleting'), false, true);
+  const rows = $$(`[data-del="${CSS.escape(id)}"]`).map(b => b.closest('.song, .clip, .art, .sh-item, li, .np-acts') || b);
+  rows.forEach(el => el.classList.add('deleting'));
   try {
     if (!LIVE) store.set('demoItems', store.get('demoItems', []).filter(x => x.id !== id));
     else await api('remove', { id });
     Data.items = Data.items.filter(i => i.id !== id);
     toast(tRaw('upload.deleted'));
+    Quota.p = null;
     route(true);
-  } catch (e) { toast(e.message, true); }
+  } catch (e) {
+    rows.forEach(el => el.classList.remove('deleting'));
+    toast(e.message, true);
+  }
 }
 
 /* ─── 시작 ─── */

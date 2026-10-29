@@ -198,6 +198,8 @@ const TEXT_SECTIONS = [
     ['upload.login', '로그인 안 했을 때', '올리려면 먼저 목차 아래에서 구글 로그인을 하자.'],
     ['upload.rules', '아래 주의 문구', '올리기 전에 2차 창작 가이드라인을 확인하자. 원본 공개 전 클립, 방송 전체를 담은 영상은 받지 않는다.'],
     ['upload.done', '올린 뒤', '올렸다 ✦'],
+    ['upload.deleting', '지우는 중', '지우는 중…'],
+    ['upload.saving', '고치는 중', '저장하는 중…'],
     ['upload.doneAs', '쇼츠·클립 올린 뒤', '{kind}(으)로 올렸다 ✦'],
     ['upload.deleted', '지운 뒤', '지웠다'],
     ['upload.confirmDelete', '지우기 확인', '지울까?'],

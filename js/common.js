@@ -25,13 +25,39 @@ const store = {
   del(k) { try { localStorage.removeItem('stl.' + k); } catch {} },
 };
 
-function toast(msg, bad) {
+// sticky: 끝날 때까지 띄워 둔다 (지우는 중 같은 것)
+function toast(msg, bad, sticky) {
   let t = $('#toast');
   if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.append(t); }
   t.textContent = typeof stripMarks === 'function' ? stripMarks(msg) : msg;
-  t.className = 'show' + (bad ? ' bad' : '');
+  t.className = 'show' + (bad ? ' bad' : '') + (sticky ? ' busy' : '');
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => (t.className = ''), 2600);
+  if (!sticky) toast._t = setTimeout(() => (t.className = ''), 2600);
+}
+
+/* 저장 공간 — 서버에서 아카이브가 쓰는 용량과 계정 남은 용량을 받아 온다 (10분 기억) */
+const Quota = {
+  data: null, p: null,
+  load() {
+    if (!LIVE) return Promise.resolve(null);
+    return (this.p ||= fetch(CFG.scriptUrl + '?action=storage').then(r => r.json()).then(r => (this.data = r.ok ? r : null)).catch(() => null)
+      .finally(() => setTimeout(() => (this.p = null), 600e3)));
+  },
+  text() {
+    const d = this.data;
+    if (!d) return '';
+    const parts = [`아카이브 파일 ${d.files}개 · ${fmtBytes(d.bytes)}`];
+    if (d.limit > 0) parts.push(`남은 공간 ${fmtBytes(Math.max(0, d.limit - d.used))} / ${fmtBytes(d.limit)}`);
+    else parts.push('학교 공용 저장소 사용 중');
+    return parts.join(' · ');
+  },
+};
+function fmtBytes(n) {
+  n = +n || 0;
+  if (n >= 1e12) return (n / 1e12).toFixed(1) + 'TB';
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'GB';
+  if (n >= 1e6) return Math.round(n / 1e6) + 'MB';
+  return Math.round(n / 1e3) + 'KB';
 }
 
 /* ─── 이미지·영상 주소 ─── */

@@ -82,6 +82,7 @@ function doGet(e) {
     if (action === 'items') return out_({ ok: true, items: allItems_() });
     if (action === 'comments') return out_({ ok: true, comments: commentsFor_(String(e.parameter.item || '')) });
     if (action === 'commentCounts') return out_({ ok: true, counts: commentCounts_() });
+    if (action === 'storage') return out_(Object.assign({ ok: true }, storage_()));
     return out_({ ok: false, error: '모르는 요청' });
   } catch (err) { return out_({ ok: false, error: String(err) }); }
 }
@@ -433,6 +434,7 @@ function fileItem_(file, kind, meta, site) {
     src: 'drive',
     url: meta.url || '',
     mime: file.getMimeType(),
+    size: file.getSize(),
     members: meta.members || [],
     group: meta.group || '',
     by: meta.byName || '',
@@ -620,5 +622,17 @@ function commentCounts_() {
   const out = {};
   commentsSheet_().getDataRange().getValues().slice(1).forEach(r => { if (r[1]) out[r[1]] = (out[r[1]] || 0) + 1; });
   cache.put('ccounts', JSON.stringify(out), 600);
+  return out;
+}
+
+/* ─── 저장 공간 ─── 아카이브 파일이 쓰는 양 + 이 계정의 남은 공간 (학교 계정은 공용이라 0 이면 '공용') */
+function storage_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('storage');
+  if (hit) return JSON.parse(hit);
+  const files = allItems_().filter(i => i.src === 'drive');
+  const out = { files: files.length, bytes: files.reduce((a, i) => a + (i.size || 0), 0), used: 0, limit: 0 };
+  try { out.used = DriveApp.getStorageUsed(); out.limit = DriveApp.getStorageLimit(); } catch (e) {}
+  cache.put('storage', JSON.stringify(out), 600);
   return out;
 }

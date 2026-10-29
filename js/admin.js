@@ -140,6 +140,7 @@ function paneSite() {
   draft.images ||= {};
   pane.innerHTML = `
     <div class="editor">
+      <p class="quota-box" id="adQuota">${esc(Quota.text() || (LIVE ? '저장 공간 불러오는 중…' : '서버를 연결하면 저장 공간이 보인다'))}</p>
       <h2>이미지</h2>
       <p class="muted sm">사이트에 나오는 그림 전부. 주소나 드라이브 링크를 넣거나 "올리기"로 올린다. 비워 두면 기본 그림이 나온다. 글자는 "글자" 탭에 있다.</p>
       ${imgField('배너 (홈 맨 위 · 첫 화면 오른쪽, 가로로 긴 그림)', draft.banner.image, 'banner.image', true)}
@@ -151,6 +152,7 @@ function paneSite() {
       </div>
     </div>`;
   bindInputs(() => draft);
+  Quota.load().then(() => { const el = $('#adQuota'); if (el && Quota.text()) el.textContent = Quota.text(); });
 }
 
 /* ─── 기수 ─── */
