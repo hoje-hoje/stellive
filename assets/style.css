@@ -948,9 +948,10 @@ body.lay-editing .lay-target, body.pos-editing .pos-target, .lp-h { touch-action
   .sh-feed { height: calc(100dvh - 57px - 64px - 96px - var(--player)); }
   .sh-item { padding: 6px 8px; gap: 8px; }
   .sh-acts .star, .sh-acts .icon-btn { width: 40px; height: 40px; }
-  .sh-nav { display: none; }
+  .sh-nav { top: 44%; right: 8px; gap: 8px; }
+  .sh-nav .icon-btn { width: 40px; height: 40px; }
 }
-@media (hover: none) { .sh-nav { display: none; } }
+
 
 /* 클립 피드: 가로 영상 */
 .sh-item.wide .sh-card { aspect-ratio: 16 / 9; height: min(100%, calc((100vw - 170px) * 9 / 16), 760px); max-width: none; border-radius: 14px; }

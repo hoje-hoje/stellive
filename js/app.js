@@ -125,26 +125,8 @@ function feedList(f) {
   return Data.items.filter(i => FEEDS[f].kinds.includes(i.kind) && feedPlayable(i) && (!type || i.kind === type) && (!who || i.members.includes(who)))
     .sort((a, b) => (b.at > a.at ? 1 : -1));
 }
-function renderFeed(f, startId) {
-  const F = FEEDS[f];
-  const all = Data.items.filter(i => F.kinds.includes(i.kind) && feedPlayable(i));
-  const nType = k => all.filter(i => i.kind === k).length;
-  const who = Data.site.members.filter(m => all.some(i => i.members.includes(m.id)));
-  if (state.feedWho[f] && !who.some(m => m.id === state.feedWho[f])) state.feedWho[f] = '';
-  const cur = state.feedWho[f];
-  const list = feedList(f);
-  view.innerHTML = `
-    <header class="sh-top">
-      <span class="big">${esc(t(F.big))}</span>
-      <div class="sh-chips">
-        <button type="button" class="chip ${cur || state.feedType ? '' : 'on'}" data-feedfilter="${f}:">${esc(t('shorts.all'))} <small>${all.length}</small></button>
-        ${['shorts', 'clip'].map(k => `<button type="button" class="chip ${state.feedType === k ? 'on' : ''}" data-feedtype="${k}">${esc(KIND[k].name)} <small>${nType(k)}</small></button>`).join('')}
-        <span class="sh-sep" aria-hidden="true"></span>
-        ${who.map(m => `<button type="button" class="chip ${cur === m.id ? 'on' : ''}" data-feedfilter="${f}:${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}${esc(m.name)}</button>`).join('')}
-      </div>
-      <button type="button" class="btn sm solid" data-upload='${esc(JSON.stringify({ kind: state.feedType || 'shorts', members: cur ? [cur] : [] }))}'>${esc(t('shorts.upload'))}</button>
-    </header>
-    ${list.length ? `<div class="sh-feed" id="shFeed" data-feed="${f}">${list.map(it => {
+// 피드 영상 한 칸
+function feedItemHtml(it) {
       const ms = it.members.map(id => Data.member(id)).filter(Boolean);
       const fav = Favs.has(it.id);
       const vertical = it.kind === 'shorts';
@@ -165,9 +147,31 @@ function renderFeed(f, startId) {
           ${ownBtns(it).replace(/icon-btn sm/g, 'icon-btn')}
         </div>
       </section>`;
-    }).join('')}</div>
+}
+
+function renderFeed(f, startId) {
+  const F = FEEDS[f];
+  const all = Data.items.filter(i => F.kinds.includes(i.kind) && feedPlayable(i));
+  const nType = k => all.filter(i => i.kind === k).length;
+  const who = Data.site.members.filter(m => all.some(i => i.members.includes(m.id)));
+  if (state.feedWho[f] && !who.some(m => m.id === state.feedWho[f])) state.feedWho[f] = '';
+  const cur = state.feedWho[f];
+  const list = feedList(f);
+  view.innerHTML = `
+    <header class="sh-top">
+      <span class="big">${esc(t(F.big))}</span>
+      <div class="sh-chips">
+        <button type="button" class="chip ${cur || state.feedType ? '' : 'on'}" data-feedfilter="${f}:">${esc(t('shorts.all'))} <small>${all.length}</small></button>
+        ${['shorts', 'clip'].map(k => `<button type="button" class="chip ${state.feedType === k ? 'on' : ''}" data-feedtype="${k}">${esc(KIND[k].name)} <small>${nType(k)}</small></button>`).join('')}
+        <span class="sh-sep" aria-hidden="true"></span>
+        ${who.map(m => `<button type="button" class="chip ${cur === m.id ? 'on' : ''}" data-feedfilter="${f}:${esc(m.id)}" style="--c:${esc(m.color)}">${avatarHtml(m, 'av')}${esc(m.name)}</button>`).join('')}
+      </div>
+      <button type="button" class="btn sm solid" data-upload='${esc(JSON.stringify({ kind: state.feedType || 'shorts', members: cur ? [cur] : [] }))}'>${esc(t('shorts.upload'))}</button>
+    </header>
+    ${list.length ? `<div class="sh-feed" id="shFeed" data-feed="${f}">${list.map(feedItemHtml).join('')}</div>
     <div class="sh-nav"><button type="button" class="icon-btn" data-shnav="-1" aria-label="이전">${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 15l7-7 7 7')}</button><button type="button" class="icon-btn" data-shnav="1" aria-label="다음">${ICON.chevR.replace('M9 5l7 7-7 7', 'M5 9l7 7 7-7')}</button></div>`
     : emptyBox(esc(t('shorts.empty')), state.feedType || 'shorts', cur ? [cur] : [])}`;
+  Feed.list = list;
   Feed.start(f, startId);
   Comments.loadCounts();
 }
@@ -182,7 +186,7 @@ const Feed = {
     const first = startId && feed.querySelector(`[data-sh="${CSS.escape(startId)}"]`);
     if (first) feed.scrollTop = first.offsetTop - feed.offsetTop;
     this.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) this.show(e.target); }), { root: feed, threshold: 0.6 });
-    $$('.sh-item', feed).forEach(el => this.io.observe(el));
+    $$('.sh-item', feed).forEach(el => { el.dataset.seen = '1'; this.io.observe(el); });
   },
   live(it) {
     const loop = it.kind === 'shorts'; // 쇼츠는 반복, 클립은 한 번
@@ -192,8 +196,22 @@ const Feed = {
     if (it.directUrl) return `<video class="sh-live" src="${esc(it.directUrl)}" autoplay ${loop ? 'loop' : ''} playsinline controls></video>`;
     return '';
   },
+  // 끝까지 오면 다시 섞어서 이어 붙인다 (끝없이 내리기)
+  list: [],
+  more() {
+    const feed = $('#shFeed');
+    if (!feed || this.list.length < 2) return;
+    const ids = this.list.map(i => i.id);
+    for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+    const last = feed.lastElementChild?.dataset.sh;
+    if (ids[0] === last) ids.push(ids.shift()); // 같은 영상이 바로 이어지지 않게
+    feed.insertAdjacentHTML('beforeend', ids.map(id => feedItemHtml(Data.item(id))).join(''));
+    $$('.sh-item:not([data-seen])', feed).forEach(el => { el.dataset.seen = '1'; this.io.observe(el); });
+    Comments.paintCounts();
+  },
   show(sec) {
     if (this.cur === sec) return;
+    if (!sec.nextElementSibling) this.more();
     if (this.cur) this.unmount(this.cur);
     this.cur = sec;
     const it = Data.item(sec.dataset.sh);
@@ -1006,7 +1024,10 @@ function route(keepScroll) {
   view.classList.toggle('play-v', page === 'play');
   view.classList.toggle('shorts-v', page === 'shorts' || page === 'clips');
   if (page !== 'shorts' && page !== 'clips') { Feed.stop(); Comments.close(); }
-  if (page !== 'play') { Player.leavePage(); Glow.set([]); }
+  if (page !== 'play') Player.leavePage();
+  // 노래 창과 멤버 페이지는 그 멤버 고유색으로 화면을 물들인다
+  if (page === 'm') { const mm = Data.member(decodeURIComponent(a || '')); Glow.set(mm ? [mm.color] : []); }
+  else if (page !== 'play') Glow.set([]);
   if (!page) renderHome();
   else if (page === 'm') renderMember(decodeURIComponent(a || ''), b);
   else if (page === 'group') renderGroup(a, b);
